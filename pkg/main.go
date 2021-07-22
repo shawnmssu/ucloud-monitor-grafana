@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/ucloud/ucloud-monitor-grafana/pkg/plugin"
 	"os"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend/datasource"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github/ucloud/ucloud-monitor-grafana/pkg/plugin"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	// from Grafana to create different instances of SampleDatasource (per datasource
 	// ID). When datasource configuration changed Dispose method will be called and
 	// new datasource instance created using NewSampleDatasource factory.
-	if err := datasource.Manage("myorgid-simple-backend-datasource", plugin.NewSampleDatasource, datasource.ManageOpts{}); err != nil {
+	if err := datasource.Manage("ucloud-monitor-grafana", plugin.NewSampleDatasource, datasource.ManageOpts{}); err != nil {
 		log.DefaultLogger.Error(err.Error())
 		os.Exit(1)
 	}

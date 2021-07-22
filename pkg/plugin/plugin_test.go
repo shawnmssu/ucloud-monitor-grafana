@@ -1,16 +1,16 @@
-package plugin_test
+package plugin
 
 import (
 	"context"
 	"testing"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-starter-datasource-backend/pkg/plugin"
 )
 
 // This is where the tests for the datasource backend live.
 func TestQueryData(t *testing.T) {
-	ds := plugin.SampleDatasource{}
+	t.Skip("skip test")
+	ds := SampleDatasource{}
 
 	resp, err := ds.QueryData(
 		context.Background(),

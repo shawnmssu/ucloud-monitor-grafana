@@ -7,8 +7,7 @@ export interface MyQuery extends DataQuery {
   resourceId: string;
 }
 
-export const defaultQuery: Partial<MyQuery> = {
-};
+export const defaultQuery: Partial<MyQuery> = {};
 
 /**
  * These are options configured for each DataSource instance

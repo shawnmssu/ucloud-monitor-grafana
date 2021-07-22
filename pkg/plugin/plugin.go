@@ -3,14 +3,16 @@ package plugin
 import (
 	"context"
 	"encoding/json"
-	"math/rand"
+	"fmt"
+	"github.com/ucloud/ucloud-sdk-go/ucloud"
+	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
+	"sync"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	"github.com/grafana/grafana-plugin-sdk-go/live"
 )
 
 // Make sure SampleDatasource implements required interfaces. This is important to do
@@ -55,55 +57,107 @@ func (d *SampleDatasource) QueryData(ctx context.Context, req *backend.QueryData
 	// create response struct
 	response := backend.NewQueryDataResponse()
 
-	// loop over queries and execute them individually.
-	for _, q := range req.Queries {
-		res := d.query(ctx, req.PluginContext, q)
-
-		// save the response in a hashmap
-		// based on with RefID as identifier
-		response.Responses[q.RefID] = res
+	if req.PluginContext.DataSourceInstanceSettings == nil {
+		return nil, fmt.Errorf("data source setting got nil")
 	}
+	client, err := getUCloudClient(*req.PluginContext.DataSourceInstanceSettings)
+	if err != nil {
+		return nil, fmt.Errorf("get ucloud clientg got error, %s", err)
+	}
+
+	// loop over queries and execute them individually.
+	var wg sync.WaitGroup
+	var mux sync.Mutex
+	for _, q := range req.Queries {
+		wg.Add(1)
+		go func(q backend.DataQuery) {
+			res := d.query(ctx, client, q)
+
+			// save the response in a hashmap
+			// based on with RefID as identifier
+			mux.Lock()
+			response.Responses[q.RefID] = res
+			mux.Unlock()
+			wg.Done()
+		}(q)
+
+	}
+	wg.Wait()
 
 	return response, nil
 }
 
 type queryModel struct {
-	WithStreaming bool `json:"withStreaming"`
+	Region       string `json:"region"`
+	ResourceType string `json:"resourceType"`
+	MetricName   string `json:"metricName"`
+	ResourceId   string `json:"resourceId"`
 }
 
-func (d *SampleDatasource) query(_ context.Context, pCtx backend.PluginContext, query backend.DataQuery) backend.DataResponse {
+func (d *SampleDatasource) query(_ context.Context, client *ucloud.Client, query backend.DataQuery) backend.DataResponse {
 	response := backend.DataResponse{}
 
 	// Unmarshal the JSON into our queryModel.
 	var qm queryModel
-	//todo
-	apiConfig := getInsSetting(*req.PluginContext.DataSourceInstanceSettings)
+
+	log.DefaultLogger.Info("QueryData2", "request", query.JSON)
 
 	response.Error = json.Unmarshal(query.JSON, &qm)
 	if response.Error != nil {
 		return response
 	}
+	log.DefaultLogger.Info("QueryData3", "query", qm)
 
 	// create data frame response.
 	frame := data.NewFrame("response")
 
-	// add fields.
-	frame.Fields = append(frame.Fields,
-		data.NewField("time", nil, []time.Time{query.TimeRange.From, query.TimeRange.To}),
-		data.NewField("values", nil, []int64{10, 20}),
-	)
-
-	// If query called with streaming on then return a channel
-	// to subscribe on a client-side and consume updates from a plugin.
-	// Feel free to remove this if you don't need streaming for your datasource.
-	if qm.WithStreaming {
-		channel := live.Channel{
-			Scope:     live.ScopeDatasource,
-			Namespace: pCtx.DataSourceInstanceSettings.UID,
-			Path:      "stream",
-		}
-		frame.SetMeta(&data.FrameMeta{Channel: channel.String()})
+	reqGet := client.NewGenericRequest()
+	response.Error = reqGet.SetPayload(map[string]interface{}{
+		"Action":       "GetMetric",
+		"Region":       qm.Region,
+		"ResourceType": qm.ResourceType,
+		"MetricName":   []string{qm.MetricName},
+		"ResourceId":   qm.ResourceId,
+		"BeginTime":    query.TimeRange.From.Unix(),
+		"EndTime":      query.TimeRange.To.Unix(),
+	})
+	if response.Error != nil {
+		return response
 	}
+	respGet, err := client.GenericInvoke(reqGet)
+	if err != nil {
+		response.Error = err
+		return response
+	}
+	log.DefaultLogger.Info("QueryData4", "query")
+	type GetMetricResponse struct {
+		DataSets interface{}
+	}
+	respGetObj := GetMetricResponse{}
+	response.Error = respGet.Unmarshal(&respGetObj)
+	if response.Error != nil {
+		return response
+	}
+	log.DefaultLogger.Info("QueryData5", "query")
+	frame.SetMeta(&data.FrameMeta{Custom: respGetObj.DataSets})
+
+	//// add fields.
+	//frame.Fields = append(frame.Fields,
+	//	data.NewField("time", nil, []time.Time{query.TimeRange.From, query.TimeRange.To}),
+	//	data.NewField("values", nil, []int64{10, 20}),
+	//)
+	//
+	//// If query called with streaming on then return a channel
+	//// to subscribe on a client-side and consume updates from a plugin.
+	//// Feel free to remove this if you don't need streaming for your datasource.
+	//if qm.WithStreaming {
+	//	channel := live.Channel{
+	//		Scope:     live.ScopeDatasource,
+	//		Namespace: pCtx.DataSourceInstanceSettings.UID,
+	//		Path:      "stream",
+	//	}
+	//	frame.SetMeta(&data.FrameMeta{Channel: channel.String()})
+	//}
 
 	// add the frames to the response.
 	response.Frames = append(response.Frames, frame)
@@ -121,10 +175,10 @@ func (d *SampleDatasource) CheckHealth(_ context.Context, req *backend.CheckHeal
 	var status = backend.HealthStatusOk
 	var message = "Data source is working"
 
-	if rand.Int()%2 == 0 {
-		status = backend.HealthStatusError
-		message = "randomized error"
-	}
+	//if rand.Int()%2 == 0 {
+	//	status = backend.HealthStatusError
+	//	message = "randomized error"
+	//}
 
 	return &backend.CheckHealthResult{
 		Status:  status,
@@ -195,21 +249,26 @@ func (d *SampleDatasource) PublishStream(_ context.Context, req *backend.Publish
 	}, nil
 }
 
-type apiConfig struct {
-	ProjectId  string`json:"projectID"`
-	PublicKey  string `json:"publicKey"`
-	PrivateKey string `json:"privateKey"`
-}
+//type apiConfig struct {
+//	ProjectId  string`json:"projectID"`
+//	PublicKey  string `json:"publicKey"`
+//	PrivateKey string `json:"privateKey"`
+//}
 
-func getInsSetting(instanceSettings backend.DataSourceInstanceSettings) (opts apiConfig) {
-
+func getUCloudClient(instanceSettings backend.DataSourceInstanceSettings) (*ucloud.Client, error) {
 	jsonData := map[string]interface{}{}
-	_ = json.Unmarshal(instanceSettings.JSONData, &jsonData)
-
-	opts = apiConfig{
-		ProjectId:  jsonData["projectID"].(string),
-		PublicKey: instanceSettings.DecryptedSecureJSONData["publicKey"],
-		PrivateKey: instanceSettings.DecryptedSecureJSONData["privateKey"],
+	if err := json.Unmarshal(instanceSettings.JSONData, &jsonData); err != nil {
+		return nil, err
 	}
-	return
+
+	cfg := ucloud.NewConfig()
+	if v, ok := jsonData["projectId"]; ok {
+		cfg.ProjectId = v.(string)
+	}
+
+	credential := auth.NewCredential()
+	credential.PublicKey = instanceSettings.DecryptedSecureJSONData["publicKey"]
+	credential.PrivateKey = instanceSettings.DecryptedSecureJSONData["privateKey"]
+
+	return ucloud.NewClient(&cfg, &credential), nil
 }
