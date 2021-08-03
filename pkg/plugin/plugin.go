@@ -4,18 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
+	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
 	"sync"
 	"time"
-
-	"github.com/grafana/grafana-plugin-sdk-go/backend"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
-	"github.com/grafana/grafana-plugin-sdk-go/backend/log"
-	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
-// Make sure SampleDatasource implements required interfaces. This is important to do
+// Make sure UCloudDatasource implements required interfaces. This is important to do
 // since otherwise we will only get a not implemented error response from plugin in
 // runtime. In this example datasource instance implements backend.QueryDataHandler,
 // backend.CheckHealthHandler, backend.StreamHandler interfaces. Plugin should not
@@ -25,33 +25,35 @@ import (
 // is useful to clean up resources used by previous datasource instance when a new datasource
 // instance created upon datasource settings changed.
 var (
-	_ backend.QueryDataHandler      = (*SampleDatasource)(nil)
-	_ backend.CheckHealthHandler    = (*SampleDatasource)(nil)
-	_ backend.StreamHandler         = (*SampleDatasource)(nil)
-	_ instancemgmt.InstanceDisposer = (*SampleDatasource)(nil)
+	_ backend.QueryDataHandler   = (*UCloudDatasource)(nil)
+	_ backend.CheckHealthHandler = (*UCloudDatasource)(nil)
+	//_ backend.StreamHandler         = (*UCloudDatasource)(nil)
+	//_ instancemgmt.InstanceDisposer = (*UCloudDatasource)(nil)
+	_ backend.CallResourceHandler = (*UCloudDatasource)(nil)
 )
 
-// NewSampleDatasource creates a new datasource instance.
-func NewSampleDatasource(_ backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-	return &SampleDatasource{}, nil
+// NewUCloudDatasource creates a new datasource instance.
+func NewUCloudDatasource(_ backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+	return &UCloudDatasource{
+		httpadapter.New(nil),
+	}, nil
 }
 
-// SampleDatasource is an example datasource which can respond to data queries, reports
+// UCloudDatasource is an example datasource which can respond to data queries, reports
 // its health and has streaming skills.
-type SampleDatasource struct{}
-
-// Dispose here tells plugin SDK that plugin wants to clean up resources when a new instance
-// created. As soon as datasource settings change detected by SDK old datasource instance will
-// be disposed and a new one will be created using NewSampleDatasource factory function.
-func (d *SampleDatasource) Dispose() {
-	// Clean up datasource instance resources.
+type UCloudDatasource struct {
+	callResourceHandler backend.CallResourceHandler
 }
 
-// QueryData handles multiple queries and returns multiple responses.
-// req contains the queries []DataQuery (where each query contains RefID as a unique identifier).
-// The QueryDataResponse contains a map of RefID to the response for each query, and each response
-// contains Frames ([]*Frame).
-func (d *SampleDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
+func (d *UCloudDatasource) CallResource(ctx context.Context, req *backend.CallResourceRequest, sender backend.CallResourceResponseSender) error {
+	return d.callResourceHandler.CallResource(ctx, req, sender)
+}
+
+//QueryData handles multiple queries and returns multiple responses.
+//req contains the queries []DataQuery (where each query contains RefID as a unique identifier).
+//The QueryDataResponse contains a map of RefID to the response for each query, and each response
+//contains Frames ([]*Frame).
+func (d *UCloudDatasource) QueryData(ctx context.Context, req *backend.QueryDataRequest) (*backend.QueryDataResponse, error) {
 	log.DefaultLogger.Info("QueryData called", "request", req)
 
 	// create response struct
@@ -87,31 +89,46 @@ func (d *SampleDatasource) QueryData(ctx context.Context, req *backend.QueryData
 	return response, nil
 }
 
+func getUCloudClient(instanceSettings backend.DataSourceInstanceSettings) (*ucloud.Client, error) {
+	jsonData := map[string]interface{}{}
+	if err := json.Unmarshal(instanceSettings.JSONData, &jsonData); err != nil {
+		return nil, err
+	}
+
+	cfg := ucloud.NewConfig()
+	if v, ok := jsonData["projectId"]; ok {
+		cfg.ProjectId = v.(string)
+	}
+
+	credential := auth.NewCredential()
+	credential.PublicKey = instanceSettings.DecryptedSecureJSONData["publicKey"]
+	credential.PrivateKey = instanceSettings.DecryptedSecureJSONData["privateKey"]
+
+	return ucloud.NewClient(&cfg, &credential), nil
+}
+
 type queryModel struct {
+	ProjectId    string `json:"projectId"`
 	Region       string `json:"region"`
 	ResourceType string `json:"resourceType"`
 	MetricName   string `json:"metricName"`
 	ResourceId   string `json:"resourceId"`
 }
 
-func (d *SampleDatasource) query(_ context.Context, client *ucloud.Client, query backend.DataQuery) backend.DataResponse {
+func (d *UCloudDatasource) query(_ context.Context, client *ucloud.Client, query backend.DataQuery) backend.DataResponse {
 	response := backend.DataResponse{}
 
 	// Unmarshal the JSON into our queryModel.
 	var qm queryModel
 
-	log.DefaultLogger.Info("QueryData2", "request", query.JSON)
-
 	response.Error = json.Unmarshal(query.JSON, &qm)
 	if response.Error != nil {
 		return response
 	}
-	log.DefaultLogger.Info("QueryData3", "query", qm)
-
-	// create data frame response.
-	frame := data.NewFrame("response")
-
 	reqGet := client.NewGenericRequest()
+	if qm.ProjectId != "" {
+		_= reqGet.SetProjectId(qm.ProjectId)
+	}
 	response.Error = reqGet.SetPayload(map[string]interface{}{
 		"Action":       "GetMetric",
 		"Region":       qm.Region,
@@ -129,38 +146,35 @@ func (d *SampleDatasource) query(_ context.Context, client *ucloud.Client, query
 		response.Error = err
 		return response
 	}
-	log.DefaultLogger.Info("QueryData4", "query")
-	type GetMetricResponse struct {
-		DataSets interface{}
+
+	type ResponseItem struct {
+		Timestamp int64
+		Value     float64
 	}
+	type GetMetricResponse struct {
+		DataSets map[string][]ResponseItem
+	}
+
 	respGetObj := GetMetricResponse{}
 	response.Error = respGet.Unmarshal(&respGetObj)
 	if response.Error != nil {
 		return response
 	}
-	log.DefaultLogger.Info("QueryData5", "query")
-	frame.SetMeta(&data.FrameMeta{Custom: respGetObj.DataSets})
 
-	//// add fields.
-	//frame.Fields = append(frame.Fields,
-	//	data.NewField("time", nil, []time.Time{query.TimeRange.From, query.TimeRange.To}),
-	//	data.NewField("values", nil, []int64{10, 20}),
-	//)
-	//
-	//// If query called with streaming on then return a channel
-	//// to subscribe on a client-side and consume updates from a plugin.
-	//// Feel free to remove this if you don't need streaming for your datasource.
-	//if qm.WithStreaming {
-	//	channel := live.Channel{
-	//		Scope:     live.ScopeDatasource,
-	//		Namespace: pCtx.DataSourceInstanceSettings.UID,
-	//		Path:      "stream",
-	//	}
-	//	frame.SetMeta(&data.FrameMeta{Channel: channel.String()})
-	//}
-
-	// add the frames to the response.
-	response.Frames = append(response.Frames, frame)
+	for metric, items := range respGetObj.DataSets {
+		frame := data.NewFrame(metric)
+		times := make([]time.Time, 0)
+		values := make([]float64, 0)
+		for _, v := range items {
+			times = append(times, time.Unix(v.Timestamp, 0))
+			values = append(values, v.Value)
+		}
+		frame.Fields = append(frame.Fields,
+			data.NewField("time", nil, times),
+			data.NewField("value", nil, values),
+		)
+		response.Frames = append(response.Frames, frame)
+	}
 
 	return response
 }
@@ -169,106 +183,26 @@ func (d *SampleDatasource) query(_ context.Context, client *ucloud.Client, query
 // The main use case for these health checks is the test button on the
 // datasource configuration page which allows users to verify that
 // a datasource is working as expected.
-func (d *SampleDatasource) CheckHealth(_ context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
+func (d *UCloudDatasource) CheckHealth(_ context.Context, req *backend.CheckHealthRequest) (*backend.CheckHealthResult, error) {
 	log.DefaultLogger.Info("CheckHealth called", "request", req)
 
 	var status = backend.HealthStatusOk
 	var message = "Data source is working"
 
-	//if rand.Int()%2 == 0 {
-	//	status = backend.HealthStatusError
-	//	message = "randomized error"
-	//}
+	if req.PluginContext.DataSourceInstanceSettings != nil {
+		setting := req.PluginContext.DataSourceInstanceSettings
+		if setting.DecryptedSecureJSONData["publicKey"] == "" {
+			status = backend.HealthStatusError
+			message = "Public Key must be set"
+		}
 
+		if setting.DecryptedSecureJSONData["privateKey"] == "" {
+			status = backend.HealthStatusError
+			message = "Private Key must be set"
+		}
+	}
 	return &backend.CheckHealthResult{
 		Status:  status,
 		Message: message,
 	}, nil
-}
-
-// SubscribeStream is called when a client wants to connect to a stream. This callback
-// allows sending the first message.
-func (d *SampleDatasource) SubscribeStream(_ context.Context, req *backend.SubscribeStreamRequest) (*backend.SubscribeStreamResponse, error) {
-	log.DefaultLogger.Info("SubscribeStream called", "request", req)
-
-	status := backend.SubscribeStreamStatusPermissionDenied
-	if req.Path == "stream" {
-		// Allow subscribing only on expected path.
-		status = backend.SubscribeStreamStatusOK
-	}
-	return &backend.SubscribeStreamResponse{
-		Status: status,
-	}, nil
-}
-
-// RunStream is called once for any open channel.  Results are shared with everyone
-// subscribed to the same channel.
-func (d *SampleDatasource) RunStream(ctx context.Context, req *backend.RunStreamRequest, sender *backend.StreamSender) error {
-	log.DefaultLogger.Info("RunStream called", "request", req)
-
-	// Create the same data frame as for query data.
-	frame := data.NewFrame("response")
-
-	// Add fields (matching the same schema used in QueryData).
-	frame.Fields = append(frame.Fields,
-		data.NewField("time", nil, make([]time.Time, 1)),
-		data.NewField("values", nil, make([]int64, 1)),
-	)
-
-	counter := 0
-
-	// Stream data frames periodically till stream closed by Grafana.
-	for {
-		select {
-		case <-ctx.Done():
-			log.DefaultLogger.Info("Context done, finish streaming", "path", req.Path)
-			return nil
-		case <-time.After(time.Second):
-			// Send new data periodically.
-			frame.Fields[0].Set(0, time.Now())
-			frame.Fields[1].Set(0, int64(10*(counter%2+1)))
-
-			counter++
-
-			err := sender.SendFrame(frame, data.IncludeAll)
-			if err != nil {
-				log.DefaultLogger.Error("Error sending frame", "error", err)
-				continue
-			}
-		}
-	}
-}
-
-// PublishStream is called when a client sends a message to the stream.
-func (d *SampleDatasource) PublishStream(_ context.Context, req *backend.PublishStreamRequest) (*backend.PublishStreamResponse, error) {
-	log.DefaultLogger.Info("PublishStream called", "request", req)
-
-	// Do not allow publishing at all.
-	return &backend.PublishStreamResponse{
-		Status: backend.PublishStreamStatusPermissionDenied,
-	}, nil
-}
-
-//type apiConfig struct {
-//	ProjectId  string`json:"projectID"`
-//	PublicKey  string `json:"publicKey"`
-//	PrivateKey string `json:"privateKey"`
-//}
-
-func getUCloudClient(instanceSettings backend.DataSourceInstanceSettings) (*ucloud.Client, error) {
-	jsonData := map[string]interface{}{}
-	if err := json.Unmarshal(instanceSettings.JSONData, &jsonData); err != nil {
-		return nil, err
-	}
-
-	cfg := ucloud.NewConfig()
-	if v, ok := jsonData["projectId"]; ok {
-		cfg.ProjectId = v.(string)
-	}
-
-	credential := auth.NewCredential()
-	credential.PublicKey = instanceSettings.DecryptedSecureJSONData["publicKey"]
-	credential.PrivateKey = instanceSettings.DecryptedSecureJSONData["privateKey"]
-
-	return ucloud.NewClient(&cfg, &credential), nil
 }

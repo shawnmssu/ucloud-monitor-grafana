@@ -5,7 +5,7 @@
   "id": "ucloud-monitor-grafana",
   "metrics": true,
   "backend": true,
-  "executable": "gpx_ucloud-monitor-grafana",
+  "executable": "gpx-ucloud-monitor-grafana",
   "info": {
     "description": "ucloud monitor plugin",
     "author": {
@@ -14,8 +14,8 @@
     },
     "keywords": ["ucloud", "ucloudmonitor", "grafana", "plugins"],
     "logos": {
-      "small": "img/logo.svg",
-      "large": "img/logo.svg"
+      "small": "img/logo.png",
+      "large": "img/logo.png"
     },
     "links": [
       {

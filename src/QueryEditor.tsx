@@ -11,6 +11,13 @@ const { FormField } = LegacyForms;
 type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
+  onProjectIdChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { onChange, query, onRunQuery } = this.props;
+    onChange({ ...query, projectId: event.target.value });
+    // executes the query
+    onRunQuery();
+  };
+
   onRegionChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = this.props;
     onChange({ ...query, region: event.target.value });
@@ -36,30 +43,15 @@ export class QueryEditor extends PureComponent<Props> {
     // executes the query a
     onRunQuery();
   };
+
   render() {
     const query = defaults(this.props.query, defaultQuery);
-    const { region, resourceType, metricName, resourceId } = query;
+    const { projectId, region, resourceType, metricName, resourceId } = query;
 
     console.log('query', query);
 
     return (
       <div className="gf-form">
-        {/*<FormField*/}
-        {/*  width={4}*/}
-        {/*  value={constant}*/}
-        {/*  onChange={this.onConstantChange}*/}
-        {/*  label="Constant"*/}
-        {/*  type="number"*/}
-        {/*  step="0.1"*/}
-        {/*/>*/}
-        {/*<FormField*/}
-        {/*  labelWidth={8}*/}
-        {/*  value={queryText || ''}*/}
-        {/*  onChange={this.onQueryTextChange}*/}
-        {/*  label="Query Text"*/}
-        {/*  tooltip="Not used yet"*/}
-        {/*/>*/}
-
         {/*<AsyncSelect*/}
         {/*    loadOptions={() => {*/}
         {/*        console.log('asd');*/}
@@ -80,15 +72,22 @@ export class QueryEditor extends PureComponent<Props> {
         {/*    }*/}
         {/*    }*/}
         {/*    defaultOptions*/}
-        {/*    value={value}*/}
-        {/*    onChange={v => {*/}
-        {/*        setValue(v);*/}
-        {/*    }}*/}
+        {/*    value={{label:"fasdf", value: "afsdf"}}*/}
+        {/*    onChange={this.onProjectIdChange}*/}
         {/*/>*/}
-
-        <FormField width={4} value={region} onChange={this.onRegionChange} label="Region" type="string" step="0.1" />
+        {/*===================================================*/}
         <FormField
-          width={4}
+          width={3}
+          value={projectId}
+          onChange={this.onProjectIdChange}
+          label="ProjectId"
+          type="string"
+          step="0.1"
+          required={true}
+        />
+        <FormField width={3} value={region} onChange={this.onRegionChange} label="Region" type="string" step="0.1" />
+        <FormField
+          width={3}
           value={resourceType}
           onChange={this.onResourceTypeChange}
           label="ResourceType"
@@ -96,7 +95,7 @@ export class QueryEditor extends PureComponent<Props> {
           step="0.1"
         />
         <FormField
-          width={4}
+          width={3}
           value={metricName}
           onChange={this.onMetricNameChange}
           label="MetricName"
@@ -104,10 +103,10 @@ export class QueryEditor extends PureComponent<Props> {
           step="0.1"
         />
         <FormField
-          width={4}
+          width={3}
           value={resourceId}
           onChange={this.onResourceIdChange}
-          label="ResourceID"
+          label="ResourceId"
           type="string"
           step="0.1"
         />

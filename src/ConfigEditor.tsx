@@ -81,12 +81,12 @@ export class ConfigEditor extends PureComponent<Props, State> {
       <div className="gf-form-group">
         <div className="gf-form">
           <FormField
-            label="Project ID"
+            label="Project Id"
             labelWidth={6}
             inputWidth={20}
             onChange={this.onProjectIDChange}
             value={jsonData.projectId || ''}
-            placeholder="json field returned to frontend"
+            placeholder="Optional Project Id"
           />
         </div>
 
@@ -96,7 +96,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
               isConfigured={(secureJsonFields && secureJsonFields.apiKey) as boolean}
               value={secureJsonData.publicKey || ''}
               label="Public Key"
-              placeholder="secure json field (backend only)"
+              placeholder="Required UCloud Public Key"
               labelWidth={6}
               inputWidth={20}
               onReset={this.onResetPublicKey}
@@ -111,7 +111,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
               isConfigured={(secureJsonFields && secureJsonFields.apiKey) as boolean}
               value={secureJsonData.privateKey || ''}
               label="Private Key"
-              placeholder="secure json field (backend only)"
+              placeholder="Required UCloud Private Key"
               labelWidth={6}
               inputWidth={20}
               onReset={this.onResetPrivateAPIKey}
