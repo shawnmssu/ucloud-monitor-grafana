@@ -10,7 +10,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
-	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -33,9 +33,11 @@ var (
 )
 
 // NewUCloudDatasource creates a new datasource instance.
-func NewUCloudDatasource(_ backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+func NewUCloudDatasource(backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
+    mux := http.NewServeMux()
+    mux.HandleFunc("/generic_api", GenericApi)
 	return &UCloudDatasource{
-		httpadapter.New(nil),
+		callResourceHandler: httpadapter.New(mux),
 	}, nil
 }
 
@@ -62,10 +64,11 @@ func (d *UCloudDatasource) QueryData(ctx context.Context, req *backend.QueryData
 	if req.PluginContext.DataSourceInstanceSettings == nil {
 		return nil, fmt.Errorf("data source setting got nil")
 	}
-	client, err := getUCloudClient(*req.PluginContext.DataSourceInstanceSettings)
+	conf, err := getUCloudConfig(*req.PluginContext.DataSourceInstanceSettings)
 	if err != nil {
-		return nil, fmt.Errorf("get ucloud clientg got error, %s", err)
+		return nil, fmt.Errorf("get ucloud setting got error, %s", err)
 	}
+	client := conf.Client()
 
 	// loop over queries and execute them individually.
 	var wg sync.WaitGroup
@@ -73,7 +76,7 @@ func (d *UCloudDatasource) QueryData(ctx context.Context, req *backend.QueryData
 	for _, q := range req.Queries {
 		wg.Add(1)
 		go func(q backend.DataQuery) {
-			res := d.query(ctx, client, q)
+			res := d.query(ctx, client.ucloudconn, q)
 
 			// save the response in a hashmap
 			// based on with RefID as identifier
@@ -89,23 +92,7 @@ func (d *UCloudDatasource) QueryData(ctx context.Context, req *backend.QueryData
 	return response, nil
 }
 
-func getUCloudClient(instanceSettings backend.DataSourceInstanceSettings) (*ucloud.Client, error) {
-	jsonData := map[string]interface{}{}
-	if err := json.Unmarshal(instanceSettings.JSONData, &jsonData); err != nil {
-		return nil, err
-	}
 
-	cfg := ucloud.NewConfig()
-	if v, ok := jsonData["projectId"]; ok {
-		cfg.ProjectId = v.(string)
-	}
-
-	credential := auth.NewCredential()
-	credential.PublicKey = instanceSettings.DecryptedSecureJSONData["publicKey"]
-	credential.PrivateKey = instanceSettings.DecryptedSecureJSONData["privateKey"]
-
-	return ucloud.NewClient(&cfg, &credential), nil
-}
 
 type queryModel struct {
 	ProjectId    string `json:"projectId"`

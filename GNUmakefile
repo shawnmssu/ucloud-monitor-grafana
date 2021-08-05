@@ -19,9 +19,12 @@ sign:
 restart:
 	docker restart grafana
 
-all: build sign rm run
+all: lint build sign rm run
 
-dev: build sign rm
+dev: lint build sign
 
 log:
 	docker logs grafana
+
+lint:
+	npx prettier --write ./src/**
