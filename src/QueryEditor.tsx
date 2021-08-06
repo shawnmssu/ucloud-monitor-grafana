@@ -124,13 +124,13 @@ const ResourceIdSelect = (props: any) => {
       const { query, datasource } = props;
       let param = {
         Action: 'GetResourceId',
-        Project: query.projectId,
+        ProjectId: query.projectId,
         Region: query.region,
         ResourceType: query.resourceType,
       };
 
       const url = 'generic_api';
-      let selectValues: SelectableValue<string>[] = new Array(0);
+      let selectValues: Array<SelectableValue<string>> = [];
       datasource.getResource(url, param).then((response: string[]) => {
         response.forEach(function(v) {
           selectValues.push({ label: v, value: v });

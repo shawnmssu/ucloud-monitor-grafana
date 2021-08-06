@@ -34,8 +34,8 @@ var (
 
 // NewUCloudDatasource creates a new datasource instance.
 func NewUCloudDatasource(backend.DataSourceInstanceSettings) (instancemgmt.Instance, error) {
-    mux := http.NewServeMux()
-    mux.HandleFunc("/generic_api", GenericApi)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/generic_api", GenericApi)
 	return &UCloudDatasource{
 		callResourceHandler: httpadapter.New(mux),
 	}, nil
@@ -92,8 +92,6 @@ func (d *UCloudDatasource) QueryData(ctx context.Context, req *backend.QueryData
 	return response, nil
 }
 
-
-
 type queryModel struct {
 	ProjectId    string `json:"projectId"`
 	Region       string `json:"region"`
@@ -114,7 +112,7 @@ func (d *UCloudDatasource) query(_ context.Context, client *ucloud.Client, query
 	}
 	reqGet := client.NewGenericRequest()
 	if qm.ProjectId != "" {
-		_= reqGet.SetProjectId(qm.ProjectId)
+		_ = reqGet.SetProjectId(qm.ProjectId)
 	}
 	response.Error = reqGet.SetPayload(map[string]interface{}{
 		"Action":       "GetMetric",

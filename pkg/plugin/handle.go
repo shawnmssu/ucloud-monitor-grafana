@@ -9,6 +9,14 @@ import (
 	"net/http"
 )
 
+const (
+	ResourceTypeUHost = "uhost"
+	ResourceTypeEIP   = "eip"
+	ResourceTypeULB   = "ulb"
+	ResourceTypeUDB   = "udb"
+	ResourceTypeUMem  = "umem"
+)
+
 func GenericApi(rw http.ResponseWriter, req *http.Request) {
 	//parse param map
 	params, err := parseRequestParams(req)
@@ -28,44 +36,103 @@ func GenericApi(rw http.ResponseWriter, req *http.Request) {
 	switch params["Action"] {
 	case "GetResourceId":
 		switch params["ResourceType"] {
-		case "uhost":
+		case ResourceTypeUHost:
 			client.proxyDescribeUHostInstance(params, rw)
 			break
-		case "eip":
+		case ResourceTypeEIP:
 			client.proxyDescribeEIP(params, rw)
 			break
-		case "ulb":
+		case ResourceTypeULB:
 			client.proxyDescribeULB(params, rw)
 			break
-		case "udb":
+		case ResourceTypeUDB:
 			client.proxyDescribeUDBInstance(params, rw)
 			break
-		case "umem":
+		case ResourceTypeUMem:
 			client.proxyDescribeUMem(params, rw)
 			break
 		}
 		break
 	case "GetMetricName":
-		client.proxyDescribeResourceMetric(params,rw)
-
+		client.proxyDescribeResourceMetric(params, rw)
+		break
+	case "GetProjectId":
+		client.proxyGetProjectList(params, rw)
+		break
+	case "GetRegion":
+		client.proxyGetRegion(params, rw)
+		break
+	case "GetResourceType":
+		client.proxyResourceType(params, rw)
 	}
 }
-type MetricNames []string
+
+func (client *uCloudClient) proxyResourceType(params map[string]string, rw http.ResponseWriter) {
+	var ids = []string{
+		ResourceTypeUHost,
+		ResourceTypeEIP,
+		ResourceTypeULB,
+		ResourceTypeUDB,
+		ResourceTypeUMem,
+	}
+	d, err := json.Marshal(ids)
+	log.DefaultLogger.Debug(string(d))
+	handleResponse(rw, d, err)
+}
+
+func (client *uCloudClient) proxyGetRegion(params map[string]string, rw http.ResponseWriter) {
+	request := client.uaccountconn.NewGetRegionRequest()
+
+	response, err := client.uaccountconn.GetRegion(request)
+	if err != nil {
+		log.DefaultLogger.Error(err.Error())
+		handleResponse(rw, nil, err)
+	} else {
+		var ids []string
+		for _, instance := range response.Regions {
+			ids = append(ids, instance.Region)
+		}
+
+		d, err := json.Marshal(ids)
+		log.DefaultLogger.Debug(string(d))
+		handleResponse(rw, d, err)
+	}
+}
+
+func (client *uCloudClient) proxyGetProjectList(params map[string]string, rw http.ResponseWriter) {
+	request := client.uaccountconn.NewGetProjectListRequest()
+
+	response, err := client.uaccountconn.GetProjectList(request)
+	if err != nil {
+		log.DefaultLogger.Error(err.Error())
+		handleResponse(rw, nil, err)
+	} else {
+		var ids []string
+		for _, instance := range response.ProjectSet {
+			ids = append(ids, instance.ProjectId)
+		}
+
+		d, err := json.Marshal(ids)
+		log.DefaultLogger.Debug(string(d))
+		handleResponse(rw, d, err)
+	}
+}
+
 func (client *uCloudClient) proxyDescribeResourceMetric(params map[string]string, rw http.ResponseWriter) {
 	request := client.ucloudconn.NewGenericRequest()
 
 	if v, ok := params["ProjectId"]; ok {
-		_= request.SetProjectId(v)
+		_ = request.SetProjectId(v)
 	}
 
 	if v, ok := params["Region"]; ok {
-		_= request.SetRegion(v)
+		_ = request.SetRegion(v)
 	}
 
 	var resourceType string
 	if v, ok := params["ResourceType"]; ok {
 		resourceType = v
-	}else {
+	} else {
 		const message = "must set ResourceType"
 		log.DefaultLogger.Error(fmt.Sprintf(message))
 		handleResponse(rw, nil, fmt.Errorf(message))
@@ -92,7 +159,7 @@ func (client *uCloudClient) proxyDescribeResourceMetric(params map[string]string
 		MetricName string
 	}
 	type DescribeResourceMetricResponse struct {
-		DataSets []ResponseItem
+		DataSet []ResponseItem
 	}
 
 	respObj := DescribeResourceMetricResponse{}
@@ -103,8 +170,8 @@ func (client *uCloudClient) proxyDescribeResourceMetric(params map[string]string
 		return
 	}
 
-	var names MetricNames
-	for _, instance := range respObj.DataSets {
+	var names []string
+	for _, instance := range respObj.DataSet {
 		names = append(names, instance.MetricName)
 	}
 
@@ -113,8 +180,6 @@ func (client *uCloudClient) proxyDescribeResourceMetric(params map[string]string
 	handleResponse(rw, d, err)
 }
 
-
-type ResourceIds []string
 func (client *uCloudClient) proxyDescribeUHostInstance(params map[string]string, rw http.ResponseWriter) {
 	request := client.uhostconn.NewDescribeUHostInstanceRequest()
 
@@ -130,7 +195,7 @@ func (client *uCloudClient) proxyDescribeUHostInstance(params map[string]string,
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
 	} else {
-		var ids ResourceIds
+		var ids []string
 		for _, instance := range response.UHostSet {
 			ids = append(ids, instance.UHostId)
 		}
@@ -140,6 +205,7 @@ func (client *uCloudClient) proxyDescribeUHostInstance(params map[string]string,
 		handleResponse(rw, d, err)
 	}
 }
+
 func (client *uCloudClient) proxyDescribeEIP(params map[string]string, rw http.ResponseWriter) {
 	request := client.unetconn.NewDescribeEIPRequest()
 
@@ -155,7 +221,7 @@ func (client *uCloudClient) proxyDescribeEIP(params map[string]string, rw http.R
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
 	} else {
-		var ids ResourceIds
+		var ids []string
 		for _, instance := range response.EIPSet {
 			ids = append(ids, instance.EIPId)
 		}
@@ -180,7 +246,7 @@ func (client *uCloudClient) proxyDescribeULB(params map[string]string, rw http.R
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
 	} else {
-		var ids ResourceIds
+		var ids []string
 		for _, instance := range response.DataSet {
 			ids = append(ids, instance.ULBId)
 		}
@@ -205,7 +271,7 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
 	} else {
-		var ids ResourceIds
+		var ids []string
 		for _, instance := range response.DataSet {
 			ids = append(ids, instance.DBId)
 		}
@@ -215,6 +281,7 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 		handleResponse(rw, d, err)
 	}
 }
+
 func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.ResponseWriter) {
 	request := client.umemconn.NewDescribeUMemRequest()
 
@@ -230,7 +297,7 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
 	} else {
-		var ids ResourceIds
+		var ids []string
 		for _, instance := range response.DataSet {
 			ids = append(ids, instance.ResourceId)
 		}
