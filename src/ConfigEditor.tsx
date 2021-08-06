@@ -26,6 +26,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
       ...options,
       secureJsonData: {
         publicKey: event.target.value,
+        ...options.secureJsonData,
       },
     });
   };
@@ -36,6 +37,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
       ...options,
       secureJsonData: {
         privateKey: event.target.value,
+        ...options.secureJsonData,
       },
     });
   };
@@ -93,7 +95,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
         <div className="gf-form-inline">
           <div className="gf-form">
             <SecretFormField
-              isConfigured={(secureJsonFields && secureJsonFields.apiKey) as boolean}
+              isConfigured={(secureJsonFields && secureJsonFields.publicKey) as boolean}
               value={secureJsonData.publicKey || ''}
               label="Public Key"
               placeholder="Required UCloud Public Key"
@@ -108,7 +110,7 @@ export class ConfigEditor extends PureComponent<Props, State> {
         <div className="gf-form-inline">
           <div className="gf-form">
             <SecretFormField
-              isConfigured={(secureJsonFields && secureJsonFields.apiKey) as boolean}
+              isConfigured={(secureJsonFields && secureJsonFields.privateKey) as boolean}
               value={secureJsonData.privateKey || ''}
               label="Private Key"
               placeholder="Required UCloud Private Key"

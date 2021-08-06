@@ -129,9 +129,8 @@ const ResourceIdSelect = (props: any) => {
         ResourceType: query.resourceType,
       };
 
-      const url = 'generic_api';
       let selectValues: Array<SelectableValue<string>> = [];
-      datasource.getResource(url, param).then((response: string[]) => {
+      datasource.getResource('generic_api', param).then((response: string[]) => {
         response.forEach(function(v) {
           selectValues.push({ label: v, value: v });
         });

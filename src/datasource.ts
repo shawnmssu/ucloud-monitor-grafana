@@ -1,4 +1,4 @@
-import { DataSourceInstanceSettings, MetricFindValue } from '@grafana/data';
+import { DataSourceInstanceSettings } from '@grafana/data';
 import { DataSourceWithBackend } from '@grafana/runtime';
 import { MyDataSourceOptions, MyQuery, MyVariableQuery } from './types';
 
@@ -16,22 +16,8 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
       Region: obj.Region,
       ResourceType: obj.ResourceType,
     };
-    const url = 'generic_api';
-    let values: MetricFindValue[] = [{ text: 'qwe' }];
-    this.getResource(url, param).then((response: string[]) => {
-      console.log('response', response);
-      response.forEach(function(v) {
-        console.log('value', v);
-        values.push({ text: v });
-      });
-    });
-    console.log('values', values);
-    console.log('values2', [{ text: 'sdfas' }]);
-    return values;
-    // return  [
-    //   {
-    //     text: "abcd",
-    //   },
-    // ];
+
+    const response = await this.getResource('generic_api', param);
+    return response.map((v: string) => ({ text: v }));
   }
 }
