@@ -8,7 +8,6 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
   }
 
   async metricFindQuery(query: MyVariableQuery, options?: any) {
-    console.log('query1', query);
     const obj = JSON.parse(query.query);
     let param = {
       Action: obj.Action,

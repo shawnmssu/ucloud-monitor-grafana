@@ -123,6 +123,7 @@ func (d *UCloudDatasource) query(_ context.Context, client *ucloud.Client, query
 		"BeginTime":    query.TimeRange.From.Unix(),
 		"EndTime":      query.TimeRange.To.Unix(),
 	})
+
 	if response.Error != nil {
 		return response
 	}

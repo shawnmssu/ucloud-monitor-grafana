@@ -7,6 +7,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend/resource/httpadapter"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"net/http"
+	"strconv"
 )
 
 const (
@@ -90,7 +91,16 @@ func (client *uCloudClient) proxyGetRegion(params map[string]string, rw http.Res
 	} else {
 		var ids []string
 		for _, instance := range response.Regions {
-			ids = append(ids, instance.Region)
+			var isRepeat bool
+			for _, id := range ids {
+				if instance.Region == id {
+					isRepeat = true
+					break
+				}
+			}
+			if !isRepeat {
+				ids = append(ids, instance.Region)
+			}
 		}
 
 		d, err := json.Marshal(ids)
@@ -120,14 +130,6 @@ func (client *uCloudClient) proxyGetProjectList(params map[string]string, rw htt
 
 func (client *uCloudClient) proxyDescribeResourceMetric(params map[string]string, rw http.ResponseWriter) {
 	request := client.ucloudconn.NewGenericRequest()
-
-	if v, ok := params["ProjectId"]; ok {
-		_ = request.SetProjectId(v)
-	}
-
-	if v, ok := params["Region"]; ok {
-		_ = request.SetRegion(v)
-	}
 
 	var resourceType string
 	if v, ok := params["ResourceType"]; ok {
@@ -189,6 +191,25 @@ func (client *uCloudClient) proxyDescribeUHostInstance(params map[string]string,
 	if v, ok := params["Region"]; ok {
 		request.Region = ucloud.String(v)
 	}
+	if v, ok := params["Tag"]; ok {
+		request.Tag = ucloud.String(v)
+	}
+	if v, ok := params["Limit"]; ok {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Limit must set to int value"))
+			return
+		}
+		request.Limit = ucloud.Int(limit)
+	}
+	if v, ok := params["Offset"]; ok {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Offset must set to int value"))
+			return
+		}
+		request.Offset = ucloud.Int(offset)
+	}
 
 	response, err := client.uhostconn.DescribeUHostInstance(request)
 	if err != nil {
@@ -216,6 +237,23 @@ func (client *uCloudClient) proxyDescribeEIP(params map[string]string, rw http.R
 		request.Region = ucloud.String(v)
 	}
 
+	if v, ok := params["Limit"]; ok {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Limit must set to int value"))
+			return
+		}
+		request.Limit = ucloud.Int(limit)
+	}
+	if v, ok := params["Offset"]; ok {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Offset must set to int value"))
+			return
+		}
+		request.Offset = ucloud.Int(offset)
+	}
+
 	response, err := client.unetconn.DescribeEIP(request)
 	if err != nil {
 		log.DefaultLogger.Error(err.Error())
@@ -223,6 +261,11 @@ func (client *uCloudClient) proxyDescribeEIP(params map[string]string, rw http.R
 	} else {
 		var ids []string
 		for _, instance := range response.EIPSet {
+			if tag, ok := params["Tag"]; ok {
+				if instance.Tag != tag {
+					continue
+				}
+			}
 			ids = append(ids, instance.EIPId)
 		}
 
@@ -240,6 +283,22 @@ func (client *uCloudClient) proxyDescribeULB(params map[string]string, rw http.R
 	if v, ok := params["Region"]; ok {
 		request.Region = ucloud.String(v)
 	}
+	if v, ok := params["Limit"]; ok {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Limit must set to int value"))
+			return
+		}
+		request.Limit = ucloud.Int(limit)
+	}
+	if v, ok := params["Offset"]; ok {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Offset must set to int value"))
+			return
+		}
+		request.Offset = ucloud.Int(offset)
+	}
 
 	response, err := client.ulbconn.DescribeULB(request)
 	if err != nil {
@@ -248,6 +307,11 @@ func (client *uCloudClient) proxyDescribeULB(params map[string]string, rw http.R
 	} else {
 		var ids []string
 		for _, instance := range response.DataSet {
+			if tag, ok := params["Tag"]; ok {
+				if instance.Tag != tag {
+					continue
+				}
+			}
 			ids = append(ids, instance.ULBId)
 		}
 
@@ -265,6 +329,22 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 	if v, ok := params["Region"]; ok {
 		request.Region = ucloud.String(v)
 	}
+	if v, ok := params["Limit"]; ok {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Limit must set to int value"))
+			return
+		}
+		request.Limit = ucloud.Int(limit)
+	}
+	if v, ok := params["Offset"]; ok {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Offset must set to int value"))
+			return
+		}
+		request.Offset = ucloud.Int(offset)
+	}
 
 	response, err := client.udbconn.DescribeUDBInstance(request)
 	if err != nil {
@@ -273,6 +353,11 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 	} else {
 		var ids []string
 		for _, instance := range response.DataSet {
+			if tag, ok := params["Tag"]; ok {
+				if instance.Tag != tag {
+					continue
+				}
+			}
 			ids = append(ids, instance.DBId)
 		}
 
@@ -291,6 +376,22 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 	if v, ok := params["Region"]; ok {
 		request.Region = ucloud.String(v)
 	}
+	if v, ok := params["Limit"]; ok {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Limit must set to int value"))
+			return
+		}
+		request.Limit = ucloud.Int(limit)
+	}
+	if v, ok := params["Offset"]; ok {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Offset must set to int value"))
+			return
+		}
+		request.Offset = ucloud.Int(offset)
+	}
 
 	response, err := client.umemconn.DescribeUMem(request)
 	if err != nil {
@@ -299,6 +400,11 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 	} else {
 		var ids []string
 		for _, instance := range response.DataSet {
+			if tag, ok := params["Tag"]; ok {
+				if instance.Tag != tag {
+					continue
+				}
+			}
 			ids = append(ids, instance.ResourceId)
 		}
 

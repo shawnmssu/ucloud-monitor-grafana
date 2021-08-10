@@ -6,6 +6,9 @@ export interface MyQuery extends DataQuery {
   resourceType: string;
   metricName: string;
   resourceId: string;
+  tag: string;
+  limit: number;
+  offset: number;
 }
 
 export const defaultQuery: Partial<MyQuery> = {};
