@@ -19,8 +19,8 @@ export class QueryEditor extends PureComponent<Props> {
         <div className="gf-form">
           <ProjectIdSelect {...this.props} />
           <RegionSelect {...this.props} />
-          <MetricNameSelect {...this.props} />
           <ResourceTypeSelect {...this.props} />
+          <MetricNameSelect {...this.props} />
           <ResourceIdSelect {...this.props} />
           <QueryResourceIdCollapse {...this.props} />
         </div>
