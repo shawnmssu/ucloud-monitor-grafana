@@ -10,22 +10,22 @@
 ## 快速开始
 
 ### 1、直接安装云监控 grafana 数据源
-    a. 直接 从release 页面 https://github.com/shawnmssu/ucloud-umon-grafana-datasource/releases 里面下载 ucloud-umon-datasource_v0.1.tar.gz
-    b. 下载到 grafan的plugin目录中，解压缩 tar -xzf ucloud-umon-datasource_v0.1.tar.gz
+    a. 直接 从release 页面 https://github.com/shawnmssu/ucloud-monitor-grafana/releases 里面下载 ucloud-monitor-datasource-v0.1.tar.gz
+    b. 下载到 grafan的plugin目录中，解压缩 tar -xzf ucloud-monitor-datasource-v0.1.tar.gz
     c. 修改 conf/defaults.ini 允许未签名插件运行
-        allow_loading_unsigned_plugins = ucloud-umon-datasource
+        allow_loading_unsigned_plugins = ucloud-monitor-datasource
     d. 重启grafana
 ### 2、源代码安装
     a. 代码编译
         - git clone https://github.com/shawnmssu/ucloud-monitor-grafana.git
-        - 进入 ucloud-umon-grafana-datasource 目录下, 执行 make build 命令(依赖 make golang mage yarn)。
+        - 进入 ucloud-monitor-grafana 目录下, 执行 make build 命令(依赖 make golang mage yarn)。
 
     b. 部署
-        1）按照上面顺序编译完成后，代码都会到 dist下面。包括前端文件和二进制可执行文件 cms-datasource*。
-        2）保证 ucloud-umon-datasource* 都具有可执行权限。chmod +x ucloud-umon-datasource*
-        3) 在 grafana 的 plugin目录中，创建 ucloud-umon-datasource 目录，把编译出来的dist目录拷贝到此
+        1）按照上面顺序编译完成后，代码都会到 dist下面。包括前端文件和二进制可执行文件 ucloud-monitor-datasource-backend*。
+        2）保证 ucloud-monitor-datasource-backend* 都具有可执行权限。chmod +x ucloud-monitor-datasource-backend*
+        3) 在 grafana 的 plugin目录中，创建 ucloud-monitor-datasource 目录，把编译出来的dist目录拷贝到此
         4) 修改 conf/defaults.ini 允许未签名插件运行
-            allow_loading_unsigned_plugins = aliyun_cms_grafana_datasource
+            allow_loading_unsigned_plugins = ucloud-monitor-datasource
         5) 重启grafana
 
 ### 3、配置云监控 grafana 数据源

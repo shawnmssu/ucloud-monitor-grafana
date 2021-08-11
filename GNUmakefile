@@ -21,10 +21,7 @@ restart:
 
 all: lint build sign rm run
 
-dev: lint build sign
-
-log:
-	docker logs grafana
+dev: lint build
 
 lint:
 	npx prettier --write ./src/**
