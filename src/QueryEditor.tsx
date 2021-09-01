@@ -1,10 +1,11 @@
-import { defaults } from 'lodash';
+import _, { defaults } from 'lodash';
 
-import React, { ChangeEvent, PureComponent, useState, useEffect } from 'react'; //useEffect
-import { LegacyForms, Collapse } from '@grafana/ui';
+import React, { ChangeEvent, PureComponent, useEffect, useState } from 'react'; //useEffect
+import { Collapse, LegacyForms } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, MyDataSourceOptions, MyQuery } from './types';
+import { getTemplateSrv } from '@grafana/runtime';
 
 const { FormField, Select } = LegacyForms; //FormField
 
@@ -12,8 +13,6 @@ type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
   render() {
-    const query = defaults(this.props.query, defaultQuery);
-    console.log('query', query);
     return (
       <div className="gf-form-inline">
         <div className="gf-form">
@@ -36,21 +35,21 @@ const QueryResourceIdCollapse = (props: any) => {
 
   const onTagChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = props;
-    query.tag = event.target.value;
+    query.tag = event.target.value || '';
     onChange({ ...query });
     // executes the query
     onRunQuery();
   };
   const onLimitChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = props;
-    query.limit = event.target.value;
+    query.limit = event.target.value || '';
     onChange({ ...query });
     // executes the query
     onRunQuery();
   };
   const onOffsetChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = props;
-    query.offset = event.target.value;
+    query.offset = event.target.value || '';
     onChange({ ...query });
     // executes the query
     onRunQuery();
@@ -58,7 +57,7 @@ const QueryResourceIdCollapse = (props: any) => {
 
   return (
     <div className="gf-form-inline">
-      <Collapse label="Query ResourceId" isOpen={isOpen} onToggle={() => setIsOpen(!isOpen)}>
+      <Collapse label="ResourceId query condition" isOpen={isOpen} onToggle={() => setIsOpen(!isOpen)}>
         <div className="gf-form">
           <FormField width={3} value={tag} onChange={onTagChange} label="Tag" type="string" step="0.1" inputWidth={5} />
           <FormField
@@ -86,10 +85,14 @@ const QueryResourceIdCollapse = (props: any) => {
 };
 
 const ProjectIdSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>();
+  const [value, setValue] = useState<SelectableValue<string>>({
+    label: props.query.projectId,
+    value: props.query.projectId,
+  });
 
   const onProjectIdChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
+    // query.projectId = setTemplateVariable(`${value.value}`) || '';
     query.projectId = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -102,7 +105,7 @@ const ProjectIdSelect = (props: any) => {
       Action: 'GetProjectId',
     };
     datasource.getResource('generic_api', param).then((response: string[]) => {
-      response.forEach(function(v) {
+      Array.prototype.forEach.call(response || [], (v) => {
         projectIdOptions.push({ label: v, value: v });
       });
     });
@@ -118,7 +121,7 @@ const ProjectIdSelect = (props: any) => {
         options={projectIdOptions}
         value={value}
         allowCustomValue
-        onChange={v => {
+        onChange={(v) => {
           setValue(v);
           onProjectIdChange(v);
         }}
@@ -128,10 +131,11 @@ const ProjectIdSelect = (props: any) => {
 };
 
 const RegionSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>();
+  const [value, setValue] = useState<SelectableValue<string>>({ label: props.query.region, value: props.query.region });
 
   const onRegionChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
+    // query.region = setTemplateVariable(`${value.value}`) || '';
     query.region = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -144,7 +148,7 @@ const RegionSelect = (props: any) => {
       Action: 'GetRegion',
     };
     datasource.getResource('generic_api', param).then((response: string[]) => {
-      response.forEach(function(v) {
+      Array.prototype.forEach.call(response || [], (v) => {
         regionOptions.push({ label: v, value: v });
       });
     });
@@ -160,7 +164,7 @@ const RegionSelect = (props: any) => {
         options={regionOptions}
         value={value}
         allowCustomValue
-        onChange={v => {
+        onChange={(v) => {
           setValue(v);
           onRegionChange(v);
         }}
@@ -170,10 +174,14 @@ const RegionSelect = (props: any) => {
 };
 
 const MetricNameSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>();
+  const [value, setValue] = useState<SelectableValue<string>>({
+    label: props.query.metricName,
+    value: props.query.metricName,
+  });
 
   const onMetricNameChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
+    // query.metricName = setTemplateVariable(`${value.value}`) || '';
     query.metricName = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -184,10 +192,10 @@ const MetricNameSelect = (props: any) => {
     const { query, datasource } = props;
     let param = {
       Action: 'GetMetricName',
-      ResourceType: query.resourceType,
+      ResourceType: setTemplateVariable(query.resourceType),
     };
     datasource.getResource('generic_api', param).then((response: string[]) => {
-      response.forEach(function(v) {
+      Array.prototype.forEach.call(response || [], (v) => {
         metricNameOptions.push({ label: v, value: v });
       });
     });
@@ -203,7 +211,7 @@ const MetricNameSelect = (props: any) => {
         options={metricNameOptions}
         value={value}
         allowCustomValue
-        onChange={v => {
+        onChange={(v) => {
           setValue(v);
           onMetricNameChange(v);
         }}
@@ -213,10 +221,14 @@ const MetricNameSelect = (props: any) => {
 };
 
 const ResourceTypeSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>();
+  const [value, setValue] = useState<SelectableValue<string>>({
+    label: props.query.resourceType,
+    value: props.query.resourceType,
+  });
 
   const onResourceTypeChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
+    // query.resourceType = setTemplateVariable(`${value.value}`) || '';
     query.resourceType = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -229,7 +241,7 @@ const ResourceTypeSelect = (props: any) => {
       Action: 'GetResourceType',
     };
     datasource.getResource('generic_api', param).then((response: string[]) => {
-      response.forEach(function(v) {
+      Array.prototype.forEach.call(response || [], (v) => {
         resourceTypeOptions.push({ label: v, value: v });
       });
     });
@@ -245,7 +257,7 @@ const ResourceTypeSelect = (props: any) => {
         options={resourceTypeOptions}
         value={value}
         allowCustomValue
-        onChange={v => {
+        onChange={(v) => {
           setValue(v);
           onResourceTypeChange(v);
         }}
@@ -255,10 +267,14 @@ const ResourceTypeSelect = (props: any) => {
 };
 
 const ResourceIdSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>();
+  const [value, setValue] = useState<SelectableValue<string>>({
+    label: props.query.resourceId,
+    value: props.query.resourceId,
+  });
 
   const onResourceIdChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
+    // query.resourceId = setTemplateVariable(`${value.value}`) || '';
     query.resourceId = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -268,16 +284,16 @@ const ResourceIdSelect = (props: any) => {
     const { query, datasource } = props;
     let param = {
       Action: 'GetResourceId',
-      ProjectId: query.projectId,
-      Region: query.region,
-      ResourceType: query.resourceType,
-      Tag: query.tag,
-      Limit: query.limit,
-      Offset: query.offset,
+      ProjectId: setTemplateVariable(query.projectId),
+      Region: setTemplateVariable(query.region),
+      ResourceType: setTemplateVariable(query.resourceType),
+      Tag: setTemplateVariable(query.tag),
+      Limit: setTemplateVariable(query.limit),
+      Offset: setTemplateVariable(query.offset),
     };
 
     datasource.getResource('generic_api', param).then((response: string[]) => {
-      response.forEach(function(v) {
+      Array.prototype.forEach.call(response || [], (v) => {
         resourceIdOptions.push({ label: v, value: v });
       });
     });
@@ -292,11 +308,21 @@ const ResourceIdSelect = (props: any) => {
         options={resourceIdOptions}
         value={value}
         allowCustomValue
-        onChange={v => {
+        onChange={(v) => {
           setValue(v);
           onResourceIdChange(v);
         }}
       />
     </div>
   );
+};
+
+export const setTemplateVariable = (value: string) => {
+  if (value?.includes('$')) {
+    Array.prototype.forEach.call(getTemplateSrv().getVariables() || [], (v) => {
+      value = value.replace(`$${_.get(v, 'name')}`, _.get(v, ['current', 'value']));
+    });
+  }
+
+  return value;
 };

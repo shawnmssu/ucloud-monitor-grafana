@@ -24,4 +24,4 @@ all: lint build sign rm run
 dev: lint build
 
 lint:
-	npx prettier --write ./src/**
+	npx prettier --write ./src
