@@ -6,6 +6,9 @@ export interface MyQuery extends DataQuery {
   resourceType: string;
   metricName: string;
   resourceId: string;
+  tag: string;
+  limit: number;
+  offset: number;
 }
 
 export const defaultQuery: Partial<MyQuery> = {};
@@ -23,4 +26,8 @@ export interface MyDataSourceOptions extends DataSourceJsonData {
 export interface MySecureJsonData {
   publicKey: string;
   privateKey: string;
+}
+
+export interface MyVariableQuery {
+  query: string;
 }

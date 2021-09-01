@@ -1,18 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/master/docs/sources/developers/plugins/plugin.schema.json",
   "type": "datasource",
-  "name": "ucloud-monitor-grafana",
-  "id": "ucloud-monitor-grafana",
+  "name": "UCloud Monitor",
+  "id": "ucloud-monitor-datasource",
   "metrics": true,
   "backend": true,
-  "executable": "gpx-ucloud-monitor-grafana",
+  "executable": "ucloud-monitor-datasource-backend",
   "info": {
-    "description": "ucloud monitor plugin",
+    "description": "UCloud monitor datasource backend plugin",
     "author": {
       "name": "mingsheng.su",
       "url": "mingsheng.su@ucloud.cn"
     },
-    "keywords": ["ucloud", "ucloudmonitor", "grafana", "plugins"],
+    "keywords": ["ucloud", "ucloudumon", "grafana", "plugins"],
     "logos": {
       "small": "img/logo.png",
       "large": "img/logo.png"
