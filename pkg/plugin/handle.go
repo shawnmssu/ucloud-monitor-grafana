@@ -16,6 +16,7 @@ const (
 	ResourceTypeULB   = "ulb"
 	ResourceTypeUDB   = "udb"
 	ResourceTypeUMem  = "umem"
+	ResourceTypeUDPN  = "udpn"
 )
 
 func GenericApi(rw http.ResponseWriter, req *http.Request) {
@@ -52,6 +53,9 @@ func GenericApi(rw http.ResponseWriter, req *http.Request) {
 		case ResourceTypeUMem:
 			client.proxyDescribeUMem(params, rw)
 			break
+		case ResourceTypeUDPN:
+			client.proxyDescribeUDPN(params, rw)
+			break
 		}
 		break
 	case "GetMetricName":
@@ -75,6 +79,7 @@ func (client *uCloudClient) proxyResourceType(params map[string]string, rw http.
 		ResourceTypeULB,
 		ResourceTypeUDB,
 		ResourceTypeUMem,
+		ResourceTypeUDPN,
 	}
 	d, err := json.Marshal(ids)
 	log.DefaultLogger.Debug(string(d))
@@ -359,6 +364,48 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 				}
 			}
 			ids = append(ids, instance.DBId)
+		}
+
+		d, err := json.Marshal(ids)
+		log.DefaultLogger.Debug(string(d))
+		handleResponse(rw, d, err)
+	}
+}
+
+func (client *uCloudClient) proxyDescribeUDPN(params map[string]string, rw http.ResponseWriter) {
+	request := client.udpnconn.NewDescribeUDPNRequest()
+
+	if v, ok := params["ProjectId"]; ok {
+		request.ProjectId = ucloud.String(v)
+	}
+	if v, ok := params["Region"]; ok {
+		request.Region = ucloud.String(v)
+	}
+	if v, ok := params["Limit"]; ok {
+		limit, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Limit must set to int value"))
+			return
+		}
+		request.Limit = ucloud.Int(limit)
+	}
+	if v, ok := params["Offset"]; ok {
+		offset, err := strconv.Atoi(v)
+		if err != nil {
+			handleResponse(rw, nil, fmt.Errorf("type is invalid, Offset must set to int value"))
+			return
+		}
+		request.Offset = ucloud.Int(offset)
+	}
+
+	response, err := client.udpnconn.DescribeUDPN(request)
+	if err != nil {
+		log.DefaultLogger.Error(err.Error())
+		handleResponse(rw, nil, err)
+	} else {
+		var ids []string
+		for _, instance := range response.DataSet {
+			ids = append(ids, instance.UDPNId)
 		}
 
 		d, err := json.Marshal(ids)

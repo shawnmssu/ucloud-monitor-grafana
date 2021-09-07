@@ -1,7 +1,6 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
-import { DataSourceWithBackend } from '@grafana/runtime';
-import { MyDataSourceOptions, MyQuery, MyVariableQuery } from './types';
-import { setTemplateVariable } from './QueryEditor';
+import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
+import { MyDataSourceOptions, MyQuery } from './types';
 
 export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
@@ -9,18 +8,24 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
   }
 
   applyTemplateVariables(query: MyQuery, scopedVars: ScopedVars): Record<string, any> {
-    query.projectId = setTemplateVariable(query.projectId || '');
-    query.region = setTemplateVariable(query.region);
-    query.resourceType = setTemplateVariable(query.resourceType);
-    query.metricName = setTemplateVariable(query.metricName);
-    query.resourceId = setTemplateVariable(query.resourceId);
-    query.tag = setTemplateVariable(query.tag);
+    query.projectId = getTemplateSrv().replace(query.projectId || '');
+    query.region = getTemplateSrv().replace(query.region);
+    query.resourceType = getTemplateSrv().replace(query.resourceType);
+    query.metricName = getTemplateSrv().replace(query.metricName);
+    query.resourceId = getTemplateSrv().replace(query.resourceId);
+    query.tag = getTemplateSrv().replace(query.tag);
     return super.applyTemplateVariables(query, scopedVars);
   }
 
-  async metricFindQuery(query: MyVariableQuery, options?: any) {
-    console.log('options', options);
-    const obj = JSON.parse(query.query);
+  async metricFindQuery(query: string, options?: any) {
+    let obj: any;
+    try {
+      obj = JSON.parse(getTemplateSrv().replace(query));
+    } catch (e) {
+      console.log('[Find Query error]:', e);
+      return Promise.resolve([]);
+    }
+
     let param = {
       Action: obj.Action,
       ProjectId: obj.ProjectId,

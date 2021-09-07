@@ -27,7 +27,3 @@ export interface MySecureJsonData {
   publicKey: string;
   privateKey: string;
 }
-
-export interface MyVariableQuery {
-  query: string;
-}

@@ -5,6 +5,7 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/ucloud/ucloud-sdk-go/services/uaccount"
 	"github.com/ucloud/ucloud-sdk-go/services/udb"
+	"github.com/ucloud/ucloud-sdk-go/services/udpn"
 	"github.com/ucloud/ucloud-sdk-go/services/uhost"
 	"github.com/ucloud/ucloud-sdk-go/services/ulb"
 	"github.com/ucloud/ucloud-sdk-go/services/umem"
@@ -24,6 +25,7 @@ type uCloudClient struct {
 	vpcconn      *vpc.VPCClient
 	udbconn      *udb.UDBClient
 	umemconn     *umem.UMemClient
+	udpnconn     *udpn.UDPNClient
 	uaccountconn *uaccount.UAccountClient
 }
 
@@ -68,6 +70,7 @@ func (c *config) Client() *uCloudClient {
 	client.ulbconn = ulb.NewClient(&cfg, &cred)
 	client.vpcconn = vpc.NewClient(&cfg, &cred)
 	client.umemconn = umem.NewClient(&cfg, &cred)
+	client.udpnconn = udpn.NewClient(&cfg, &cred)
 	client.uaccountconn = uaccount.NewClient(&cfg, &cred)
 	longtimeCfg := cfg
 	longtimeCfg.Timeout = 60 * time.Second

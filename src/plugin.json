@@ -15,7 +15,7 @@
     "keywords": ["ucloud", "ucloudumon", "grafana", "plugins"],
     "logos": {
       "small": "img/logo.png",
-      "large": "img/logo.png"
+      "large": "img/logo_big.png"
     },
     "links": [
       {
@@ -31,6 +31,13 @@
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
+  "includes": [
+    {
+      "type": "dashboard",
+      "name": "UCloud UHost",
+      "path": "dashboards/uhost.json"
+    }
+  ],
   "dependencies": {
     "grafanaDependency": ">=7.0.0",
     "plugins": []

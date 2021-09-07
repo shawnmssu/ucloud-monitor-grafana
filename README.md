@@ -9,30 +9,35 @@
 
 ## 快速开始
 
-### 1、直接安装云监控 grafana 数据源
-    a. 直接 从release 页面 https://github.com/shawnmssu/ucloud-monitor-grafana/releases 里面下载 ucloud-monitor-datasource-v0.1.tar.gz
-    b. 下载到 grafan的plugin目录中，解压缩 tar -xzf ucloud-monitor-datasource-v0.1.tar.gz
-    c. 修改 conf/defaults.ini 允许未签名插件运行
-        allow_loading_unsigned_plugins = ucloud-monitor-datasource
-    d. 重启grafana
-### 2、源代码安装
-    a. 代码编译
-        - git clone https://github.com/shawnmssu/ucloud-monitor-grafana.git
-        - 进入 ucloud-monitor-grafana 目录下, 执行 make build 命令(依赖 make golang mage yarn)。
+### 安装数据源 
 
-    b. 部署
-        1）按照上面顺序编译完成后，代码都会到 dist下面。包括前端文件和二进制可执行文件 ucloud-monitor-datasource-backend*。
-        2）保证 ucloud-monitor-datasource-backend* 都具有可执行权限。chmod +x ucloud-monitor-datasource-backend*
-        3) 在 grafana 的 plugin目录中，创建 ucloud-monitor-datasource 目录，把编译出来的dist目录拷贝到此
-        4) 修改 conf/defaults.ini 允许未签名插件运行
-            allow_loading_unsigned_plugins = ucloud-monitor-datasource
-        5) 重启grafana
+#### release 安装
 
-### 3、配置云监控 grafana 数据源
-    a.进入 grafana 的数据源配置页面(Data Sources), 点击 Add data source 进入配置表单页面,填入数据源名称 ucloud-umon-datasource 并选择；
-    b. 填写公私钥和配置信息
-        其中 Public Key 和 Private Key 为必填，可以从[控制台](https://console.ucloud.cn/uapi/apikey)获取;
-        如果显示 Data source is working,说明数据源配置成功,可以开始在 grafana 中访问 UCloud 云监控的数据了。
+- 直接 从 release 页面 https://github.com/shawnmssu/ucloud-monitor-grafana/releases 里下载 ucloud-monitor-datasource-v0.1.tar.gz
+- 下载到 grafana 的 plugin 目录中，解压缩 tar -xzf ucloud-monitor-datasource-v0.1.tar.gz
+- 修改 conf/defaults.ini 允许未签名插件运行
+   allow_loading_unsigned_plugins = ucloud-monitor-datasource
+- 重启 grafana
+
+#### 源代码安装
+
+- 代码编译
+    - git clone https://github.com/shawnmssu/ucloud-monitor-grafana.git
+    - 进入 ucloud-monitor-grafana 目录下, 执行 make build 命令(依赖 make golang mage yarn)。
+
+- 部署 
+   - 按照上面顺序编译完成后，代码都会到 dist下面。包括前端文件和二进制可执行文件 ucloud-monitor-datasource-backend*。 
+   - 保证 ucloud-monitor-datasource-backend* 都具有可执行权限。chmod +x ucloud-monitor-datasource-backend*
+   - 在 grafana 的 plugin目录中，创建 ucloud-monitor-datasource 目录，把编译出来的dist目录拷贝到此
+   - 修改 conf/defaults.ini 允许未签名插件运行 
+     allow_loading_unsigned_plugins = ucloud-monitor-datasource 
+   - 重启grafana
+
+### 配置云监控 grafana 数据源
+  - 进入 grafana 的数据源配置页面(Data Sources), 点击 Add data source 进入配置表单页面,填入数据源名称 ucloud-umon-datasource 并选择； 
+  - 填写公私钥和配置信息:
+    其中 Public Key 和 Private Key 为必填，可以从 [控制台](https://console.ucloud.cn/uapi/apikey) 获取;
+    如果显示 Data source is working，说明数据源配置成功，可以开始在 grafana 中访问 UCloud 云监控的数据了。
     
 ## 配置 Dashboard 图表
 ### Data Source Query 参数
@@ -59,4 +64,4 @@
 
 -  例如：
    - 查询监控指标：{ "Action": "GetMetricName","Region": "cn-bj2", "ResourceType": "uhost" }
-   - 查询资源ID：{ "Action": "GetResourceId","Region": "cn-bj2", "Tag": "Default" }
+   - 查询资源ID：{ "Action": "GetResourceId","ResourceType": "uhost", Region": "cn-bj2", "Tag": "Default" }

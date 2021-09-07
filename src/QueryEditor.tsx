@@ -1,29 +1,26 @@
 import _, { defaults } from 'lodash';
 
-import React, { ChangeEvent, PureComponent, useEffect, useState } from 'react'; //useEffect
-import { Collapse, LegacyForms } from '@grafana/ui';
+import React, { ChangeEvent, PureComponent, useEffect, useState, FunctionComponent, InputHTMLAttributes } from 'react';
+const { Input } = LegacyForms;
+import { Collapse, LegacyForms, InlineFormLabel, Segment } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
 import { defaultQuery, MyDataSourceOptions, MyQuery } from './types';
 import { getTemplateSrv } from '@grafana/runtime';
-
-const { FormField, Select } = LegacyForms; //FormField
 
 type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
 
 export class QueryEditor extends PureComponent<Props> {
   render() {
     return (
-      <div className="gf-form-inline">
-        <div className="gf-form">
-          <ProjectIdSelect {...this.props} />
-          <RegionSelect {...this.props} />
-          <ResourceTypeSelect {...this.props} />
-          <MetricNameSelect {...this.props} />
-          <ResourceIdSelect {...this.props} />
-          <QueryResourceIdCollapse {...this.props} />
-        </div>
-      </div>
+      <>
+        <ProjectIdSelect {...this.props} />
+        <RegionSelect {...this.props} />
+        <ResourceTypeSelect {...this.props} />
+        <MetricNameSelect {...this.props} />
+        <ResourceIdSelect {...this.props} />
+        <QueryResourceIdCollapse {...this.props} />
+      </>
     );
   }
 }
@@ -31,7 +28,7 @@ export class QueryEditor extends PureComponent<Props> {
 const QueryResourceIdCollapse = (props: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const query = defaults(props.query, defaultQuery);
-  const { tag, limit, offset } = query;
+  const { tag, limit, offset, onRunQuery } = query;
 
   const onTagChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = props;
@@ -40,44 +37,51 @@ const QueryResourceIdCollapse = (props: any) => {
     // executes the query
     onRunQuery();
   };
+
   const onLimitChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = props;
     query.limit = event.target.value || '';
     onChange({ ...query });
-    // executes the query
     onRunQuery();
   };
   const onOffsetChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { onChange, query, onRunQuery } = props;
     query.offset = event.target.value || '';
     onChange({ ...query });
-    // executes the query
     onRunQuery();
   };
 
   return (
-    <div className="gf-form-inline">
+    <div className="gf-form gf-form--grow">
       <Collapse label="ResourceId query condition" isOpen={isOpen} onToggle={() => setIsOpen(!isOpen)}>
-        <div className="gf-form">
-          <FormField width={3} value={tag} onChange={onTagChange} label="Tag" type="string" step="0.1" inputWidth={5} />
-          <FormField
-            width={3}
-            value={limit}
-            onChange={onLimitChange}
-            label="Limit"
-            type="number"
-            step="0.1"
-            inputWidth={5}
-          />
-          <FormField
-            width={3}
-            value={offset}
-            onChange={onOffsetChange}
-            label="Offset"
-            type="number"
-            step="0.1"
-            inputWidth={5}
-          />
+        <div className="gf-form-inline">
+          <div className="gf-form">
+            <QueryField label="Offset">
+              <Input
+                className="gf-form-input width-6"
+                onBlur={onRunQuery}
+                value={offset}
+                type="number"
+                onChange={onOffsetChange}
+              />
+            </QueryField>
+          </div>
+          <div className="gf-form">
+            <QueryField label="Limit">
+              <Input
+                className="gf-form-input width-6"
+                onBlur={onRunQuery}
+                value={limit}
+                type="number"
+                onChange={onLimitChange}
+              />
+            </QueryField>
+          </div>
+          <div className="gf-form gf-form--grow">
+            <QueryField className="gf-form--grow" label="Tag">
+              <Input className="gf-form-input" onBlur={onRunQuery} value={tag} onChange={onTagChange} />
+            </QueryField>
+          </div>
         </div>
       </Collapse>
     </div>
@@ -92,7 +96,6 @@ const ProjectIdSelect = (props: any) => {
 
   const onProjectIdChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
-    // query.projectId = setTemplateVariable(`${value.value}`) || '';
     query.projectId = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -112,21 +115,18 @@ const ProjectIdSelect = (props: any) => {
   });
 
   return (
-    <div className="gf-form-inline">
-      <label className="gf-form-label width-6">ProjectId</label>
-      <Select
-        isSearchable
-        isClearable
-        className="gf-form-input"
-        options={projectIdOptions}
+    <QueryInlineField label="ProjectId">
+      <Segment
         value={value}
+        placeholder="Select project"
+        options={projectIdOptions}
         allowCustomValue
         onChange={(v) => {
           setValue(v);
           onProjectIdChange(v);
         }}
       />
-    </div>
+    </QueryInlineField>
   );
 };
 
@@ -135,7 +135,6 @@ const RegionSelect = (props: any) => {
 
   const onRegionChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
-    // query.region = setTemplateVariable(`${value.value}`) || '';
     query.region = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -155,21 +154,18 @@ const RegionSelect = (props: any) => {
   });
 
   return (
-    <div className="gf-form-inline">
-      <label className="gf-form-label width-6">Region</label>
-      <Select
-        isSearchable
-        isClearable
-        className="gf-form-input"
-        options={regionOptions}
+    <QueryInlineField label="Region">
+      <Segment
         value={value}
+        placeholder="Select region"
+        options={regionOptions}
         allowCustomValue
         onChange={(v) => {
           setValue(v);
           onRegionChange(v);
         }}
       />
-    </div>
+    </QueryInlineField>
   );
 };
 
@@ -181,7 +177,6 @@ const MetricNameSelect = (props: any) => {
 
   const onMetricNameChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
-    // query.metricName = setTemplateVariable(`${value.value}`) || '';
     query.metricName = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -192,7 +187,7 @@ const MetricNameSelect = (props: any) => {
     const { query, datasource } = props;
     let param = {
       Action: 'GetMetricName',
-      ResourceType: setTemplateVariable(query.resourceType),
+      ResourceType: getTemplateSrv().replace(query.resourceType),
     };
     datasource.getResource('generic_api', param).then((response: string[]) => {
       Array.prototype.forEach.call(response || [], (v) => {
@@ -202,21 +197,18 @@ const MetricNameSelect = (props: any) => {
   });
 
   return (
-    <div className="gf-form-inline">
-      <label className="gf-form-label width-6">MetricName</label>
-      <Select
-        isSearchable
-        isClearable
-        className="gf-form-input"
-        options={metricNameOptions}
+    <QueryInlineField label="MetricName">
+      <Segment
         value={value}
+        placeholder="Select metricName"
+        options={metricNameOptions}
         allowCustomValue
         onChange={(v) => {
           setValue(v);
           onMetricNameChange(v);
         }}
       />
-    </div>
+    </QueryInlineField>
   );
 };
 
@@ -228,7 +220,6 @@ const ResourceTypeSelect = (props: any) => {
 
   const onResourceTypeChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
-    // query.resourceType = setTemplateVariable(`${value.value}`) || '';
     query.resourceType = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -248,21 +239,18 @@ const ResourceTypeSelect = (props: any) => {
   });
 
   return (
-    <div className="gf-form-inline">
-      <label className="gf-form-label width-6">ResourceType</label>
-      <Select
-        isSearchable
-        isClearable
-        className="gf-form-input"
-        options={resourceTypeOptions}
+    <QueryInlineField label="ResourceType">
+      <Segment
         value={value}
+        placeholder="Select resourceType"
+        options={resourceTypeOptions}
         allowCustomValue
         onChange={(v) => {
           setValue(v);
           onResourceTypeChange(v);
         }}
       />
-    </div>
+    </QueryInlineField>
   );
 };
 
@@ -274,7 +262,6 @@ const ResourceIdSelect = (props: any) => {
 
   const onResourceIdChange = (value: SelectableValue<string>) => {
     const { onChange, query, onRunQuery } = props;
-    // query.resourceId = setTemplateVariable(`${value.value}`) || '';
     query.resourceId = value.value || '';
     onChange({ ...query });
     onRunQuery();
@@ -284,12 +271,12 @@ const ResourceIdSelect = (props: any) => {
     const { query, datasource } = props;
     let param = {
       Action: 'GetResourceId',
-      ProjectId: setTemplateVariable(query.projectId),
-      Region: setTemplateVariable(query.region),
-      ResourceType: setTemplateVariable(query.resourceType),
-      Tag: setTemplateVariable(query.tag),
-      Limit: setTemplateVariable(query.limit),
-      Offset: setTemplateVariable(query.offset),
+      ProjectId: getTemplateSrv().replace(query.projectId),
+      Region: getTemplateSrv().replace(query.region),
+      ResourceType: getTemplateSrv().replace(query.resourceType),
+      Tag: getTemplateSrv().replace(query.tag),
+      Limit: getTemplateSrv().replace(query.limit),
+      Offset: getTemplateSrv().replace(query.offset),
     };
 
     datasource.getResource('generic_api', param).then((response: string[]) => {
@@ -299,30 +286,43 @@ const ResourceIdSelect = (props: any) => {
     });
   });
   return (
-    <div className="gf-form-inline">
-      <label className="gf-form-label width-6">ResourceId</label>
-      <Select
-        isSearchable
-        isClearable
-        className="gf-form-input"
-        options={resourceIdOptions}
+    <QueryInlineField label="ResourceId">
+      <Segment
         value={value}
+        placeholder="Select resourceId"
+        options={resourceIdOptions}
         allowCustomValue
         onChange={(v) => {
           setValue(v);
           onResourceIdChange(v);
         }}
       />
-    </div>
+    </QueryInlineField>
   );
 };
 
-export const setTemplateVariable = (value: string) => {
-  if (value?.includes('$')) {
-    Array.prototype.forEach.call(getTemplateSrv().getVariables() || [], (v) => {
-      value = value.replace(`$${_.get(v, 'name')}`, _.get(v, ['current', 'value']));
-    });
-  }
+interface PropsField extends InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  tooltip?: string;
+  children?: React.ReactNode;
+}
 
-  return value;
+const QueryField: FunctionComponent<Partial<PropsField>> = ({ label, tooltip, children }) => (
+  <>
+    <InlineFormLabel width={8} className="query-keyword" tooltip={tooltip}>
+      {label}
+    </InlineFormLabel>
+    {children}
+  </>
+);
+
+const QueryInlineField: FunctionComponent<PropsField> = ({ ...props }) => {
+  return (
+    <div className={'gf-form-inline'}>
+      <QueryField {...props} />
+      <div className="gf-form gf-form--grow">
+        <div className="gf-form-label gf-form-label--grow" />
+      </div>
+    </div>
+  );
 };
