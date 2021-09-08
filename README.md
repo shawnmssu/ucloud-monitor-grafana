@@ -33,7 +33,7 @@
 
 ### 配置云监控 grafana 数据源
 
-  - 进入 grafana 的数据源配置页面(Data Sources), 点击 Add data source 进入配置表单页面,填入数据源名称 ucloud-umon-datasource 并选择； 
+  - 进入 grafana 的数据源配置页面(Data Sources), 点击 Add data source 进入配置表单页面,填入数据源名称 UCloud Monitor 并选择； 
   - 填写公私钥和配置信息:
     其中 Public Key 和 Private Key 为必填，可以从 [控制台](https://console.ucloud.cn/uapi/apikey) 获取;
     如果显示 Data source is working，说明数据源配置成功，可以开始在 grafana 中访问 UCloud 云监控的数据了。
