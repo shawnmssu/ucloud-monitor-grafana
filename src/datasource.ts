@@ -36,7 +36,7 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
       };
 
       let respArr: MetricFindValue[] = [];
-      await this.getResource('generic_api', param).then((response :any) => {
+      await this.getResource('generic_api', param).then((response: any) => {
         if (response instanceof Array) {
           Array.prototype.forEach.call(response || [], (v) => {
             respArr.push({ text: v, value: v });
