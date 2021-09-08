@@ -107,10 +107,12 @@ const ProjectIdSelect = (props: any) => {
     let param = {
       Action: 'GetProjectId',
     };
-    datasource.getResource('generic_api', param).then((response: string[]) => {
-      Array.prototype.forEach.call(response || [], (v) => {
-        projectIdOptions.push({ label: v, value: v });
-      });
+    datasource.getResource('generic_api', param).then((response: any) => {
+      if (response instanceof Array) {
+        Array.prototype.forEach.call(response || [], (v) => {
+          projectIdOptions.push({ label: v, value: v });
+        });
+      }
     });
   });
 
@@ -146,10 +148,12 @@ const RegionSelect = (props: any) => {
     let param = {
       Action: 'GetRegion',
     };
-    datasource.getResource('generic_api', param).then((response: string[]) => {
-      Array.prototype.forEach.call(response || [], (v) => {
-        regionOptions.push({ label: v, value: v });
-      });
+    datasource.getResource('generic_api', param).then((response: any) => {
+      if (response instanceof Array) {
+        Array.prototype.forEach.call(response || [], (v) => {
+          regionOptions.push({ label: v, value: v });
+        });
+      }
     });
   });
 
@@ -189,10 +193,12 @@ const MetricNameSelect = (props: any) => {
       Action: 'GetMetricName',
       ResourceType: getTemplateSrv().replace(query.resourceType),
     };
-    datasource.getResource('generic_api', param).then((response: string[]) => {
-      Array.prototype.forEach.call(response || [], (v) => {
-        metricNameOptions.push({ label: v, value: v });
-      });
+    datasource.getResource('generic_api', param).then((response: any) => {
+      if (response instanceof Array) {
+        Array.prototype.forEach.call(response || [], (v) => {
+          metricNameOptions.push({ label: v, value: v });
+        });
+      }
     });
   });
 
@@ -231,10 +237,12 @@ const ResourceTypeSelect = (props: any) => {
     let param = {
       Action: 'GetResourceType',
     };
-    datasource.getResource('generic_api', param).then((response: string[]) => {
-      Array.prototype.forEach.call(response || [], (v) => {
-        resourceTypeOptions.push({ label: v, value: v });
-      });
+    datasource.getResource('generic_api', param).then((response: any) => {
+      if (response instanceof Array) {
+        Array.prototype.forEach.call(response || [], (v) => {
+          resourceTypeOptions.push({ label: v, value: v });
+        });
+      }
     });
   });
 
@@ -279,10 +287,12 @@ const ResourceIdSelect = (props: any) => {
       Offset: getTemplateSrv().replace(query.offset),
     };
 
-    datasource.getResource('generic_api', param).then((response: string[]) => {
-      Array.prototype.forEach.call(response || [], (v) => {
-        resourceIdOptions.push({ label: v, value: v });
-      });
+    datasource.getResource('generic_api', param).then((response: any) => {
+      if (response instanceof Array) {
+        Array.prototype.forEach.call(response || [], (v) => {
+          resourceIdOptions.push({ label: v, value: v });
+        });
+      }
     });
   });
   return (

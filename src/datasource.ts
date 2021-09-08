@@ -1,6 +1,7 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
 import { MyDataSourceOptions, MyQuery } from './types';
+import { MetricFindValue } from '@grafana/data/types/datasource';
 
 export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
@@ -18,22 +19,32 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
   }
 
   async metricFindQuery(query: string, options?: any) {
-    let obj: any;
-    try {
-      obj = JSON.parse(getTemplateSrv().replace(query));
-    } catch (e) {
-      console.log('[Find Query error]:', e);
-      return Promise.resolve([]);
+    if (query) {
+      let obj: any;
+      try {
+        obj = JSON.parse(getTemplateSrv().replace(query));
+      } catch (e) {
+        console.log('[Find Query error]:', e);
+        return Promise.resolve([]);
+      }
+
+      let param = {
+        Action: obj.Action,
+        ProjectId: obj.ProjectId,
+        Region: obj.Region,
+        ResourceType: obj.ResourceType,
+      };
+
+      let respArr: MetricFindValue[] = [];
+      await this.getResource('generic_api', param).then((response :any) => {
+        if (response instanceof Array) {
+          Array.prototype.forEach.call(response || [], (v) => {
+            respArr.push({ text: v, value: v });
+          });
+        }
+      });
+      return respArr;
     }
-
-    let param = {
-      Action: obj.Action,
-      ProjectId: obj.ProjectId,
-      Region: obj.Region,
-      ResourceType: obj.ResourceType,
-    };
-
-    const response = await this.getResource('generic_api', param);
-    return response.map((v: string) => ({ text: v }));
+    return Promise.resolve([]);
   }
 }

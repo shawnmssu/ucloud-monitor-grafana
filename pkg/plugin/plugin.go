@@ -148,7 +148,7 @@ func (d *UCloudDatasource) query(_ context.Context, client *ucloud.Client, query
 	}
 
 	for metric, items := range respGetObj.DataSets {
-		frame := data.NewFrame(metric)
+		frame := data.NewFrame(qm.ResourceId)
 		times := make([]time.Time, 0)
 		values := make([]float64, 0)
 		for _, v := range items {
@@ -157,7 +157,7 @@ func (d *UCloudDatasource) query(_ context.Context, client *ucloud.Client, query
 		}
 		frame.Fields = append(frame.Fields,
 			data.NewField("time", nil, times),
-			data.NewField("value", nil, values),
+			data.NewField(metric, nil, values),
 		)
 		response.Frames = append(response.Frames, frame)
 	}

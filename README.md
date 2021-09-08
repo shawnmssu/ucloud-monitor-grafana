@@ -13,9 +13,8 @@
 
 #### release 安装
 
-- 直接 从 release 页面 https://github.com/shawnmssu/ucloud-monitor-grafana/releases 里下载 ucloud-monitor-datasource-v0.1.tar.gz
-- 下载到 grafana 的 plugin 目录中，解压缩 tar -xzf ucloud-monitor-datasource-v0.1.tar.gz
-- 修改 conf/defaults.ini 允许未签名插件运行
+- 从 release 页面 https://github.com/shawnmssu/ucloud-monitor-grafana/releases 下载并解压到 grafana 的 plugin 目录中
+- 修改 [configration](https://grafana.com/docs/grafana/latest/administration/configuration/) 中的 plugins 配置，允许未签名插件运行：
    allow_loading_unsigned_plugins = ucloud-monitor-datasource
 - 重启 grafana
 
@@ -25,35 +24,38 @@
     - git clone https://github.com/shawnmssu/ucloud-monitor-grafana.git
     - 进入 ucloud-monitor-grafana 目录下, 执行 make build 命令(依赖 make golang mage yarn)。
 
-- 部署 
-   - 按照上面顺序编译完成后，代码都会到 dist下面。包括前端文件和二进制可执行文件 ucloud-monitor-datasource-backend*。 
-   - 保证 ucloud-monitor-datasource-backend* 都具有可执行权限。chmod +x ucloud-monitor-datasource-backend*
-   - 在 grafana 的 plugin目录中，创建 ucloud-monitor-datasource 目录，把编译出来的dist目录拷贝到此
-   - 修改 conf/defaults.ini 允许未签名插件运行 
+- 部署
+   - 将 dist 目录下的文件 ucloud-monitor-datasource-backend* 增加可执行权限：chmod +x ucloud-monitor-datasource-backend*
+   - 在 grafana 的 plugin目录中，创建 ucloud-monitor-datasource 目录，把编译出来的 dist 目录拷贝到此
+   - 修改 [configration](https://grafana.com/docs/grafana/latest/administration/configuration/) 中的 plugins 配置，允许未签名插件运行：
      allow_loading_unsigned_plugins = ucloud-monitor-datasource 
    - 重启grafana
 
 ### 配置云监控 grafana 数据源
+
   - 进入 grafana 的数据源配置页面(Data Sources), 点击 Add data source 进入配置表单页面,填入数据源名称 ucloud-umon-datasource 并选择； 
   - 填写公私钥和配置信息:
     其中 Public Key 和 Private Key 为必填，可以从 [控制台](https://console.ucloud.cn/uapi/apikey) 获取;
     如果显示 Data source is working，说明数据源配置成功，可以开始在 grafana 中访问 UCloud 云监控的数据了。
     
 ## 配置 Dashboard 图表
+
 ### Data Source Query 参数
+
    |  参数   | 说明  | 备注|
    |  :----:  | :----:  | :----:|
    | ProjectId  | 项目ID | - |
    | Region | 资源所在地域 | - |
-   | ResourceType  | 资源类型 | 已支持 uhost, eip, ulb, udb, umem |
+   | ResourceType  | 资源类型 | 已支持 uhost, eip, ulb, udb, umem, udpn |
    | MetricName  | 监控指标 | - |
    | ResourceId  | 资源ID | - |
    |  - | - | - |
-   | Tag  | 查询资源的业务组名称 | Query ResourceId 相关参数|
+   | Tag  | 查询资源的业务组名称 | Query ResourceId 相关参数 |
    | Limit  | 返回数据长度，默认为20，最大100 | Query ResourceId 相关参数 |
    | Offset  | 列表起始位置偏移量，默认为0 | Query ResourceId 相关参数 |
 
 ### 配置 variables
+
 - Variables支持 Type 类型为 Query 和 Custom，具体请参考 [grafana 官方文档](https://grafana.com/docs/grafana/latest/variables/variable-types/),
   其中配置 Type 为 Query， 支持通过自定义 json 数据来获取 variable。
   
@@ -65,3 +67,7 @@
 -  例如：
    - 查询监控指标：{ "Action": "GetMetricName","Region": "cn-bj2", "ResourceType": "uhost" }
    - 查询资源ID：{ "Action": "GetResourceId","ResourceType": "uhost", Region": "cn-bj2", "Tag": "Default" }
+
+### 预设 Dashboard
+
+- 可以在配置数据源时 import 预设的 Dashboard，目前已支持 UCLoud UHost
