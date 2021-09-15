@@ -1,4 +1,4 @@
-import { DataQuery, DataSourceJsonData } from '@grafana/data';
+import { DataQuery, DataSourceJsonData, SelectableValue } from '@grafana/data';
 
 export interface MyQuery extends DataQuery {
   projectId?: string;
@@ -9,9 +9,10 @@ export interface MyQuery extends DataQuery {
   tag: string;
   limit: number;
   offset: number;
+  ulbId: string;
 }
 
-export const defaultQuery: Partial<MyQuery> = {};
+export type SelectableStrings = Array<SelectableValue<string>>;
 
 /**
  * These are options configured for each DataSource instance

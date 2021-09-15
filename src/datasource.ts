@@ -1,7 +1,6 @@
 import { DataSourceInstanceSettings, ScopedVars } from '@grafana/data';
 import { DataSourceWithBackend, getTemplateSrv } from '@grafana/runtime';
 import { MyDataSourceOptions, MyQuery } from './types';
-import { MetricFindValue } from '@grafana/data/types/datasource';
 
 export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptions> {
   constructor(instanceSettings: DataSourceInstanceSettings<MyDataSourceOptions>) {
@@ -15,6 +14,7 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
     query.metricName = getTemplateSrv().replace(query.metricName);
     query.resourceId = getTemplateSrv().replace(query.resourceId);
     query.tag = getTemplateSrv().replace(query.tag);
+    query.ulbId = getTemplateSrv().replace(query.ulbId);
     return super.applyTemplateVariables(query, scopedVars);
   }
 
@@ -33,13 +33,17 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
         ProjectId: obj.ProjectId,
         Region: obj.Region,
         ResourceType: obj.ResourceType,
+        Tag: obj.Tag,
+        Limit: obj.Limit,
+        Offset: obj.Offset,
+        ULBId: obj.ULBId,
       };
 
-      let respArr: MetricFindValue[] = [];
+      let respArr: Array<{ text: any; label: any; value: any }> = [];
       await this.getResource('generic_api', param).then((response: any) => {
         if (response instanceof Array) {
           Array.prototype.forEach.call(response || [], (v) => {
-            respArr.push({ text: v, value: v });
+            respArr.push({ text: v, value: v, label: v });
           });
         }
       });

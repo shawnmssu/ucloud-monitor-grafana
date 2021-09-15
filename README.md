@@ -42,17 +42,18 @@
 
 ### Data Source Query 参数
 
-   |  参数   | 说明  | 备注|
-   |  :----:  | :----:  | :----:|
-   | ProjectId  | 项目ID | - |
-   | Region | 资源所在地域 | - |
-   | ResourceType  | 资源类型 | 已支持 uhost, eip, ulb, udb, umem, udpn |
-   | MetricName  | 监控指标 | - |
-   | ResourceId  | 资源ID | - |
+   |  参数   | 说明  | 备注| 必填
+   |  :----:  | :----:  | :----:|:----:|
+   | ProjectId  | 项目ID | - | 是 |
+   | Region | 资源所在地域 | - | 是 |
+   | ResourceType  | 资源类型 | 已支持 uhost, eip, ulb, ulb-vserver, udb, umem, udpn, phost, sharebandwidth, umemcache, uredis, natgw, ufile, udisk. udisk_ssd, udisk_rssd, udisk_sys | 是 |
+   | MetricName  | 监控指标 | - | 是 |
+   | ResourceId  | 资源ID | - | 是 |
    |  - | - | - |
-   | Tag  | 查询资源的业务组名称 | Query ResourceId 相关参数 |
-   | Limit  | 返回数据长度，默认为20，最大100 | Query ResourceId 相关参数 |
-   | Offset  | 列表起始位置偏移量，默认为0 | Query ResourceId 相关参数 |
+   | Tag  | 查询资源的业务组名称 | Query ResourceId 相关参数 | 否 |
+   | Limit  | 返回数据长度，默认为20，最大100 | Query ResourceId 相关参数 | 否 |
+   | Offset  | 列表起始位置偏移量，默认为0 | Query ResourceId 相关参数 | 否 |
+   | ULBId   | ULB 的资源 ID | Query ulb-vserver ResourceId 相关参数 | 否 |
 
 ### 配置 variables
 

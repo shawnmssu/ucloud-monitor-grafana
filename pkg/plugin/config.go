@@ -5,11 +5,14 @@ import (
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/ucloud/ucloud-sdk-go/services/uaccount"
 	"github.com/ucloud/ucloud-sdk-go/services/udb"
+	"github.com/ucloud/ucloud-sdk-go/services/udisk"
 	"github.com/ucloud/ucloud-sdk-go/services/udpn"
+	"github.com/ucloud/ucloud-sdk-go/services/ufile"
 	"github.com/ucloud/ucloud-sdk-go/services/uhost"
 	"github.com/ucloud/ucloud-sdk-go/services/ulb"
 	"github.com/ucloud/ucloud-sdk-go/services/umem"
 	"github.com/ucloud/ucloud-sdk-go/services/unet"
+	"github.com/ucloud/ucloud-sdk-go/services/uphost"
 	"github.com/ucloud/ucloud-sdk-go/services/vpc"
 	"github.com/ucloud/ucloud-sdk-go/ucloud"
 	"github.com/ucloud/ucloud-sdk-go/ucloud/auth"
@@ -27,6 +30,9 @@ type uCloudClient struct {
 	umemconn     *umem.UMemClient
 	udpnconn     *udpn.UDPNClient
 	uaccountconn *uaccount.UAccountClient
+	uphostconn   *uphost.UPHostClient
+	ufileconn    *ufile.UFileClient
+	udiskconn    *udisk.UDiskClient
 }
 
 type config struct {
@@ -72,6 +78,9 @@ func (c *config) Client() *uCloudClient {
 	client.umemconn = umem.NewClient(&cfg, &cred)
 	client.udpnconn = udpn.NewClient(&cfg, &cred)
 	client.uaccountconn = uaccount.NewClient(&cfg, &cred)
+	client.uphostconn = uphost.NewClient(&cfg, &cred)
+	client.ufileconn = ufile.NewClient(&cfg, &cred)
+	client.udiskconn = udisk.NewClient(&cfg, &cred)
 	longtimeCfg := cfg
 	longtimeCfg.Timeout = 60 * time.Second
 	client.udbconn = udb.NewClient(&longtimeCfg, &cred)

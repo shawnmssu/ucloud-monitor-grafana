@@ -1,60 +1,174 @@
-import _, { defaults } from 'lodash';
-
-import React, { ChangeEvent, PureComponent, useEffect, useState, FunctionComponent, InputHTMLAttributes } from 'react';
+import React, { PureComponent, useEffect, useState, FunctionComponent, InputHTMLAttributes } from 'react';
 const { Input } = LegacyForms;
-import { Collapse, LegacyForms, InlineFormLabel, Segment } from '@grafana/ui';
+import { Collapse, LegacyForms, InlineFormLabel, Segment, SegmentAsync } from '@grafana/ui';
 import { QueryEditorProps, SelectableValue } from '@grafana/data';
 import { DataSource } from './datasource';
-import { defaultQuery, MyDataSourceOptions, MyQuery } from './types';
-import { getTemplateSrv } from '@grafana/runtime';
+import { MyDataSourceOptions, MyQuery, SelectableStrings } from './types';
 
 type Props = QueryEditorProps<DataSource, MyQuery, MyDataSourceOptions>;
-
 export class QueryEditor extends PureComponent<Props> {
   render() {
     return (
       <>
-        <ProjectIdSelect {...this.props} />
-        <RegionSelect {...this.props} />
-        <ResourceTypeSelect {...this.props} />
-        <MetricNameSelect {...this.props} />
-        <ResourceIdSelect {...this.props} />
+        <MetricsQueryFieldsEditor {...this.props} />
         <QueryResourceIdCollapse {...this.props} />
       </>
     );
   }
 }
 
+interface State {
+  projectIds: SelectableStrings;
+  regions: SelectableStrings;
+  resourceTypes: SelectableStrings;
+}
+const MetricsQueryFieldsEditor = (props: any) => {
+  const { onChange, query, onRunQuery, datasource } = props;
+  const onQueryChange = (query: MyQuery) => {
+    onChange(query);
+    onRunQuery();
+  };
+
+  const [state, setState] = useState<State>({
+    projectIds: [],
+    regions: [],
+    resourceTypes: [],
+  });
+
+  useEffect(() => {
+    let projectParam = {
+      Action: 'GetProjectId',
+    };
+    let regionParam = {
+      Action: 'GetRegion',
+    };
+    let resourceTypeParam = {
+      Action: 'GetResourceType',
+    };
+    Promise.all([
+      datasource.metricFindQuery(JSON.stringify(projectParam)),
+      datasource.metricFindQuery(JSON.stringify(regionParam)),
+      datasource.metricFindQuery(JSON.stringify(resourceTypeParam)),
+    ]).then(([projectIds, regions, resourceTypes]) => {
+      setState((prevState) => ({
+        ...prevState,
+        projectIds: projectIds,
+        regions: regions,
+        resourceTypes: resourceTypes,
+      }));
+    });
+  }, [datasource]);
+
+  const loadMetricNames = async () => {
+    return datasource
+      .metricFindQuery(
+        JSON.stringify({
+          Action: 'GetMetricName',
+          ResourceType: query.resourceType,
+        })
+      )
+      .then((value: SelectableValue[]) => value);
+  };
+
+  const loadResourceIds = async () => {
+    return datasource
+      .metricFindQuery(
+        JSON.stringify({
+          Action: 'GetResourceId',
+          ProjectId: query.projectId,
+          Region: query.region,
+          ResourceType: query.resourceType,
+          Tag: query.tag,
+          Limit: query.limit,
+          Offset: query.offset,
+          ULBId: query.ulbId,
+        })
+      )
+      .then((value: SelectableValue[]) => value);
+  };
+
+  const { projectIds, regions, resourceTypes } = state;
+  console.log('projectIds:///', projectIds);
+  return (
+    <>
+      <QueryInlineField label="ProjectId">
+        <Segment
+          value={query.projectId}
+          placeholder="Select project"
+          options={projectIds}
+          allowCustomValue
+          onChange={({ value: projectId }) => onQueryChange({ ...query, projectId: projectId! })}
+        />
+      </QueryInlineField>
+      <QueryInlineField label="Region">
+        <Segment
+          value={query.region}
+          placeholder="Select region"
+          options={regions}
+          allowCustomValue
+          onChange={({ value: region }) => onQueryChange({ ...query, region: region! })}
+        />
+      </QueryInlineField>
+      <QueryInlineField label="ResourceType">
+        <Segment
+          value={query.resourceType}
+          placeholder="Select resourceType"
+          options={resourceTypes}
+          allowCustomValue
+          onChange={({ value: resourceType }) => onQueryChange({ ...query, resourceType: resourceType! })}
+        />
+      </QueryInlineField>
+      <QueryInlineField label="MetricName">
+        <SegmentAsync
+          value={query.metricName}
+          placeholder="Select metric name"
+          loadOptions={loadMetricNames}
+          allowCustomValue
+          onChange={({ value: metricName }) => onQueryChange({ ...query, metricName: metricName! })}
+        />
+      </QueryInlineField>
+      <QueryInlineField label="ResourceId">
+        <SegmentAsync
+          value={query.resourceId}
+          placeholder="Select resourceId"
+          loadOptions={loadResourceIds}
+          allowCustomValue
+          onChange={({ value: resourceId }) => onQueryChange({ ...query, resourceId: resourceId! })}
+        />
+      </QueryInlineField>
+    </>
+  );
+};
+
 const QueryResourceIdCollapse = (props: any) => {
   const [isOpen, setIsOpen] = useState(false);
-  const query = defaults(props.query, defaultQuery);
-  const { tag, limit, offset, onRunQuery } = query;
-
-  const onTagChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.tag = event.target.value || '';
-    onChange({ ...query });
-    // executes the query
+  const { onChange, query, onRunQuery } = props;
+  const { tag, limit, offset, ulbId } = query;
+  const onQueryChange = (query: MyQuery) => {
+    onChange(query);
     onRunQuery();
   };
 
-  const onLimitChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.limit = event.target.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
-  const onOffsetChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.offset = event.target.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
+  const resourceType = query.resourceType;
 
   return (
     <div className="gf-form gf-form--grow">
       <Collapse label="ResourceId query condition" isOpen={isOpen} onToggle={() => setIsOpen(!isOpen)}>
         <div className="gf-form-inline">
+          <div>
+            {resourceType === 'ulb-vserver' ? (
+              <div className="gf-form">
+                <QueryField label="ULBId">
+                  <Input
+                    className="gf-form-input width-6"
+                    onBlur={onRunQuery}
+                    value={ulbId}
+                    onChange={(v) => onQueryChange({ ...query, ulbId: v.target.value! })}
+                  />
+                </QueryField>
+              </div>
+            ) : null}
+          </div>
           <div className="gf-form">
             <QueryField label="Offset">
               <Input
@@ -62,7 +176,7 @@ const QueryResourceIdCollapse = (props: any) => {
                 onBlur={onRunQuery}
                 value={offset}
                 type="number"
-                onChange={onOffsetChange}
+                onChange={(v) => onQueryChange({ ...query, offset: v.target.value! })}
               />
             </QueryField>
           </div>
@@ -73,241 +187,23 @@ const QueryResourceIdCollapse = (props: any) => {
                 onBlur={onRunQuery}
                 value={limit}
                 type="number"
-                onChange={onLimitChange}
+                onChange={(v) => onQueryChange({ ...query, limit: v.target.value! })}
               />
             </QueryField>
           </div>
           <div className="gf-form gf-form--grow">
             <QueryField className="gf-form--grow" label="Tag">
-              <Input className="gf-form-input" onBlur={onRunQuery} value={tag} onChange={onTagChange} />
+              <Input
+                className="gf-form-input"
+                onBlur={onRunQuery}
+                value={tag}
+                onChange={(v) => onQueryChange({ ...query, tag: v.target.value! })}
+              />
             </QueryField>
           </div>
         </div>
       </Collapse>
     </div>
-  );
-};
-
-const ProjectIdSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>({
-    label: props.query.projectId,
-    value: props.query.projectId,
-  });
-
-  const onProjectIdChange = (value: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.projectId = value.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
-
-  const projectIdOptions: Array<SelectableValue<string>> = [];
-  useEffect(() => {
-    const { datasource } = props;
-    let param = {
-      Action: 'GetProjectId',
-    };
-    datasource.getResource('generic_api', param).then((response: any) => {
-      if (response instanceof Array) {
-        Array.prototype.forEach.call(response || [], (v) => {
-          projectIdOptions.push({ label: v, value: v });
-        });
-      }
-    });
-  });
-
-  return (
-    <QueryInlineField label="ProjectId">
-      <Segment
-        value={value}
-        placeholder="Select project"
-        options={projectIdOptions}
-        allowCustomValue
-        onChange={(v) => {
-          setValue(v);
-          onProjectIdChange(v);
-        }}
-      />
-    </QueryInlineField>
-  );
-};
-
-const RegionSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>({ label: props.query.region, value: props.query.region });
-
-  const onRegionChange = (value: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.region = value.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
-
-  const regionOptions: Array<SelectableValue<string>> = [];
-  useEffect(() => {
-    const { datasource } = props;
-    let param = {
-      Action: 'GetRegion',
-    };
-    datasource.getResource('generic_api', param).then((response: any) => {
-      if (response instanceof Array) {
-        Array.prototype.forEach.call(response || [], (v) => {
-          regionOptions.push({ label: v, value: v });
-        });
-      }
-    });
-  });
-
-  return (
-    <QueryInlineField label="Region">
-      <Segment
-        value={value}
-        placeholder="Select region"
-        options={regionOptions}
-        allowCustomValue
-        onChange={(v) => {
-          setValue(v);
-          onRegionChange(v);
-        }}
-      />
-    </QueryInlineField>
-  );
-};
-
-const MetricNameSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>({
-    label: props.query.metricName,
-    value: props.query.metricName,
-  });
-
-  const onMetricNameChange = (value: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.metricName = value.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
-
-  const metricNameOptions: Array<SelectableValue<string>> = [];
-  useEffect(() => {
-    const { query, datasource } = props;
-    let param = {
-      Action: 'GetMetricName',
-      ResourceType: getTemplateSrv().replace(query.resourceType),
-    };
-    datasource.getResource('generic_api', param).then((response: any) => {
-      if (response instanceof Array) {
-        Array.prototype.forEach.call(response || [], (v) => {
-          metricNameOptions.push({ label: v, value: v });
-        });
-      }
-    });
-  });
-
-  return (
-    <QueryInlineField label="MetricName">
-      <Segment
-        value={value}
-        placeholder="Select metricName"
-        options={metricNameOptions}
-        allowCustomValue
-        onChange={(v) => {
-          setValue(v);
-          onMetricNameChange(v);
-        }}
-      />
-    </QueryInlineField>
-  );
-};
-
-const ResourceTypeSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>({
-    label: props.query.resourceType,
-    value: props.query.resourceType,
-  });
-
-  const onResourceTypeChange = (value: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.resourceType = value.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
-
-  const resourceTypeOptions: Array<SelectableValue<string>> = [];
-  useEffect(() => {
-    const { datasource } = props;
-    let param = {
-      Action: 'GetResourceType',
-    };
-    datasource.getResource('generic_api', param).then((response: any) => {
-      if (response instanceof Array) {
-        Array.prototype.forEach.call(response || [], (v) => {
-          resourceTypeOptions.push({ label: v, value: v });
-        });
-      }
-    });
-  });
-
-  return (
-    <QueryInlineField label="ResourceType">
-      <Segment
-        value={value}
-        placeholder="Select resourceType"
-        options={resourceTypeOptions}
-        allowCustomValue
-        onChange={(v) => {
-          setValue(v);
-          onResourceTypeChange(v);
-        }}
-      />
-    </QueryInlineField>
-  );
-};
-
-const ResourceIdSelect = (props: any) => {
-  const [value, setValue] = useState<SelectableValue<string>>({
-    label: props.query.resourceId,
-    value: props.query.resourceId,
-  });
-
-  const onResourceIdChange = (value: SelectableValue<string>) => {
-    const { onChange, query, onRunQuery } = props;
-    query.resourceId = value.value || '';
-    onChange({ ...query });
-    onRunQuery();
-  };
-  const resourceIdOptions: Array<SelectableValue<string>> = [];
-  useEffect(() => {
-    const { query, datasource } = props;
-    let param = {
-      Action: 'GetResourceId',
-      ProjectId: getTemplateSrv().replace(query.projectId),
-      Region: getTemplateSrv().replace(query.region),
-      ResourceType: getTemplateSrv().replace(query.resourceType),
-      Tag: getTemplateSrv().replace(query.tag),
-      Limit: getTemplateSrv().replace(query.limit),
-      Offset: getTemplateSrv().replace(query.offset),
-    };
-
-    datasource.getResource('generic_api', param).then((response: any) => {
-      if (response instanceof Array) {
-        Array.prototype.forEach.call(response || [], (v) => {
-          resourceIdOptions.push({ label: v, value: v });
-        });
-      }
-    });
-  });
-  return (
-    <QueryInlineField label="ResourceId">
-      <Segment
-        value={value}
-        placeholder="Select resourceId"
-        options={resourceIdOptions}
-        allowCustomValue
-        onChange={(v) => {
-          setValue(v);
-          onResourceIdChange(v);
-        }}
-      />
-    </QueryInlineField>
   );
 };
 
