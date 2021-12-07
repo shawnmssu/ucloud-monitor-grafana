@@ -6,6 +6,7 @@
   "metrics": true,
   "backend": true,
   "executable": "ucloud-monitor-datasource-backend",
+  "alerting": true,
   "info": {
     "description": "UCloud monitor datasource backend plugin",
     "author": {

@@ -36,7 +36,50 @@ const (
 	//ResourceTypeUHadoop     = "uhadoop"
 	//ResourceTypeUKafka      = "ukafka"
 	//ResourceTypeUdw         = "udw"
+
+	ActionGetResourceId   = "GetResourceId"
+	ActionGetMetricName   = "GetMetricName"
+	ActionGetProjectId    = "GetProjectId"
+	ActionGetRegion       = "GetRegion"
+	ActionGetResourceType = "GetResourceType"
 )
+
+type handleFunc func(params map[string]string, rw http.ResponseWriter)
+
+type GenericApiHandle struct {
+	ActionMap       map[string]handleFunc
+	ResourceTypeMap map[string]handleFunc
+}
+
+func NewGenericApiHandle(client *uCloudClient) *GenericApiHandle {
+	return &GenericApiHandle{
+		ResourceTypeMap: map[string]handleFunc{
+			ResourceTypeUHost:      client.proxyDescribeUHostInstance,
+			ResourceTypeEIP:        client.proxyDescribeEIP,
+			ResourceTypeULB:        client.proxyDescribeULB,
+			ResourceTypeUDB:        client.proxyDescribeUDBInstance,
+			ResourceTypeUMem:       client.proxyDescribeUMem,
+			ResourceTypeUDPN:       client.proxyDescribeUDPN,
+			ResourceTypePHost:      client.proxyDescribePHost,
+			ResourceTypeShareBW:    client.proxyDescribeShareBW,
+			ResourceTypeUMemCache:  client.proxyDescribeUMemCache,
+			ResourceTypeURedis:     client.proxyDescribeURedis,
+			ResourceTypeNatGW:      client.proxyDescribeNatGW,
+			ResourceTypeUFile:      client.proxyDescribeUFile,
+			ResourceTypeULBVServer: client.proxyDescribeULBVServer,
+			ResourceTypeUDisk:      client.proxyDescribeUDisk,
+			ResourceTypeUDiskSSD:   client.proxyDescribeUDiskSSD,
+			ResourceTypeUDiskRSSD:  client.proxyDescribeUDiskRSSD,
+			ResourceTypeUDiskSys:   client.proxyDescribeUDiskSys,
+		},
+		ActionMap: map[string]handleFunc{
+			ActionGetMetricName:   client.proxyDescribeResourceMetric,
+			ActionGetProjectId:    client.proxyGetProjectList,
+			ActionGetRegion:       client.proxyGetRegion,
+			ActionGetResourceType: client.proxyResourceType,
+		},
+	}
+}
 
 func GenericApi(rw http.ResponseWriter, req *http.Request) {
 	//parse param map
@@ -52,75 +95,19 @@ func GenericApi(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	client := conf.Client()
-
-	// redirect by action
-	switch params["Action"] {
-	case "GetResourceId":
-		switch params["ResourceType"] {
-		case ResourceTypeUHost:
-			client.proxyDescribeUHostInstance(params, rw)
-			break
-		case ResourceTypeEIP:
-			client.proxyDescribeEIP(params, rw)
-			break
-		case ResourceTypeULB:
-			client.proxyDescribeULB(params, rw)
-			break
-		case ResourceTypeUDB:
-			client.proxyDescribeUDBInstance(params, rw)
-			break
-		case ResourceTypeUMem:
-			client.proxyDescribeUMem(params, rw)
-			break
-		case ResourceTypeUDPN:
-			client.proxyDescribeUDPN(params, rw)
-			break
-		case ResourceTypePHost:
-			client.proxyDescribePHost(params, rw)
-			break
-		case ResourceTypeShareBW:
-			client.proxyDescribeShareBW(params, rw)
-			break
-		case ResourceTypeUMemCache:
-			client.proxyDescribeUMemCache(params, rw)
-			break
-		case ResourceTypeURedis:
-			client.proxyDescribeURedis(params, rw)
-			break
-		case ResourceTypeNatGW:
-			client.proxyDescribeNatGW(params, rw)
-			break
-		case ResourceTypeUFile:
-			client.proxyDescribeUFile(params, rw)
-			break
-		case ResourceTypeULBVServer:
-			client.proxyDescribeULBVServer(params, rw)
-			break
-		case ResourceTypeUDisk:
-			client.proxyDescribeUDisk(params, rw)
-			break
-		case ResourceTypeUDiskSSD:
-			client.proxyDescribeUDiskSSD(params, rw)
-			break
-		case ResourceTypeUDiskRSSD:
-			client.proxyDescribeUDiskRSSD(params, rw)
-			break
-		case ResourceTypeUDiskSys:
-			client.proxyDescribeUDiskSys(params, rw)
-			break
+	handles := NewGenericApiHandle(client)
+	if params["Action"] == ActionGetResourceId {
+		if handle, ok := handles.ResourceTypeMap[params["ResourceType"]]; ok {
+			handle(params, rw)
+		} else {
+			handleResponse(rw, nil, fmt.Errorf("got invalid ResourceType %s", params["ResourceType"]))
 		}
-		break
-	case "GetMetricName":
-		client.proxyDescribeResourceMetric(params, rw)
-		break
-	case "GetProjectId":
-		client.proxyGetProjectList(params, rw)
-		break
-	case "GetRegion":
-		client.proxyGetRegion(params, rw)
-		break
-	case "GetResourceType":
-		client.proxyResourceType(params, rw)
+	} else {
+		if handle, ok := handles.ActionMap[params["Action"]]; ok {
+			handle(params, rw)
+		} else {
+			handleResponse(rw, nil, fmt.Errorf("got invalid Action %s", params["Action"]))
+		}
 	}
 }
 
@@ -167,6 +154,8 @@ func (client *uCloudClient) proxyDescribeULBVServer(params map[string]string, rw
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -175,6 +164,8 @@ func (client *uCloudClient) proxyDescribeULBVServer(params map[string]string, rw
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.ulbconn.DescribeVServer(request)
@@ -215,6 +206,8 @@ func (client *uCloudClient) proxyDescribeUDisk(params map[string]string, rw http
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -223,6 +216,8 @@ func (client *uCloudClient) proxyDescribeUDisk(params map[string]string, rw http
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.udiskconn.DescribeUDisk(request)
@@ -264,6 +259,8 @@ func (client *uCloudClient) proxyDescribeUDiskSSD(params map[string]string, rw h
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -272,6 +269,8 @@ func (client *uCloudClient) proxyDescribeUDiskSSD(params map[string]string, rw h
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.udiskconn.DescribeUDisk(request)
@@ -312,6 +311,8 @@ func (client *uCloudClient) proxyDescribeUDiskRSSD(params map[string]string, rw 
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -320,6 +321,8 @@ func (client *uCloudClient) proxyDescribeUDiskRSSD(params map[string]string, rw 
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.udiskconn.DescribeUDisk(request)
@@ -358,6 +361,8 @@ func (client *uCloudClient) proxyDescribeUDiskSys(params map[string]string, rw h
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -366,6 +371,8 @@ func (client *uCloudClient) proxyDescribeUDiskSys(params map[string]string, rw h
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.udiskconn.DescribeUDisk(request)
@@ -408,6 +415,8 @@ func (client *uCloudClient) proxyDescribeURedis(params map[string]string, rw htt
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -416,6 +425,8 @@ func (client *uCloudClient) proxyDescribeURedis(params map[string]string, rw htt
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.umemconn.DescribeURedisGroup(request)
@@ -454,6 +465,8 @@ func (client *uCloudClient) proxyDescribeNatGW(params map[string]string, rw http
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -462,6 +475,8 @@ func (client *uCloudClient) proxyDescribeNatGW(params map[string]string, rw http
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.vpcconn.DescribeNATGW(request)
@@ -490,9 +505,6 @@ func (client *uCloudClient) proxyDescribeUFile(params map[string]string, rw http
 	if v, ok := params["ProjectId"]; ok {
 		request.ProjectId = ucloud.String(v)
 	}
-	if v, ok := params["Region"]; ok {
-		request.Region = ucloud.String(v)
-	}
 	if v, ok := params["Limit"]; ok {
 		limit, err := strconv.Atoi(v)
 		if err != nil {
@@ -500,6 +512,8 @@ func (client *uCloudClient) proxyDescribeUFile(params map[string]string, rw http
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -508,6 +522,8 @@ func (client *uCloudClient) proxyDescribeUFile(params map[string]string, rw http
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.ufileconn.DescribeBucket(request)
@@ -532,8 +548,7 @@ func (client *uCloudClient) proxyDescribeUFile(params map[string]string, rw http
 }
 
 func (client *uCloudClient) proxyDescribeUMemCache(params map[string]string, rw http.ResponseWriter) {
-	request := client.umemconn.NewDescribeUMemRequest()
-	request.Protocol = ucloud.String("memcache")
+	request := client.umemconn.NewDescribeUMemcacheGroupRequest()
 	if v, ok := params["ProjectId"]; ok {
 		request.ProjectId = ucloud.String(v)
 	}
@@ -547,6 +562,8 @@ func (client *uCloudClient) proxyDescribeUMemCache(params map[string]string, rw 
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -555,9 +572,11 @@ func (client *uCloudClient) proxyDescribeUMemCache(params map[string]string, rw 
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
-	response, err := client.umemconn.DescribeUMem(request)
+	response, err := client.umemconn.DescribeUMemcacheGroup(request)
 	if err != nil {
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
@@ -569,7 +588,7 @@ func (client *uCloudClient) proxyDescribeUMemCache(params map[string]string, rw 
 					continue
 				}
 			}
-			ids = append(ids, instance.ResourceId)
+			ids = append(ids, instance.GroupId)
 		}
 
 		d, err := json.Marshal(ids)
@@ -662,6 +681,8 @@ func (client *uCloudClient) proxyDescribePHost(params map[string]string, rw http
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -670,6 +691,8 @@ func (client *uCloudClient) proxyDescribePHost(params map[string]string, rw http
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.uphostconn.DescribePHost(request)
@@ -813,6 +836,8 @@ func (client *uCloudClient) proxyDescribeUHostInstance(params map[string]string,
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -821,6 +846,8 @@ func (client *uCloudClient) proxyDescribeUHostInstance(params map[string]string,
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.uhostconn.DescribeUHostInstance(request)
@@ -856,6 +883,8 @@ func (client *uCloudClient) proxyDescribeEIP(params map[string]string, rw http.R
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -864,6 +893,8 @@ func (client *uCloudClient) proxyDescribeEIP(params map[string]string, rw http.R
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.unetconn.DescribeEIP(request)
@@ -902,6 +933,8 @@ func (client *uCloudClient) proxyDescribeULB(params map[string]string, rw http.R
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -910,6 +943,8 @@ func (client *uCloudClient) proxyDescribeULB(params map[string]string, rw http.R
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.ulbconn.DescribeULBSimple(request)
@@ -941,6 +976,11 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 	if v, ok := params["Region"]; ok {
 		request.Region = ucloud.String(v)
 	}
+
+	if v, ok := params["ClassType"]; ok {
+		request.ClassType = ucloud.String(v)
+	}
+
 	if v, ok := params["Limit"]; ok {
 		limit, err := strconv.Atoi(v)
 		if err != nil {
@@ -948,6 +988,8 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -956,6 +998,8 @@ func (client *uCloudClient) proxyDescribeUDBInstance(params map[string]string, r
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.udbconn.DescribeUDBInstance(request)
@@ -995,6 +1039,8 @@ func (client *uCloudClient) proxyDescribeUDPN(params map[string]string, rw http.
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -1003,6 +1049,8 @@ func (client *uCloudClient) proxyDescribeUDPN(params map[string]string, rw http.
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
 	response, err := client.udpnconn.DescribeUDPN(request)
@@ -1022,7 +1070,8 @@ func (client *uCloudClient) proxyDescribeUDPN(params map[string]string, rw http.
 }
 
 func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.ResponseWriter) {
-	request := client.umemconn.NewDescribeUMemRequest()
+	// distributed memcached and distributed redis
+	request := client.umemconn.NewDescribeUMemSpaceRequest()
 
 	if v, ok := params["ProjectId"]; ok {
 		request.ProjectId = ucloud.String(v)
@@ -1030,6 +1079,7 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 	if v, ok := params["Region"]; ok {
 		request.Region = ucloud.String(v)
 	}
+
 	if v, ok := params["Limit"]; ok {
 		limit, err := strconv.Atoi(v)
 		if err != nil {
@@ -1037,6 +1087,8 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 			return
 		}
 		request.Limit = ucloud.Int(limit)
+	} else {
+		request.Limit = ucloud.Int(20)
 	}
 	if v, ok := params["Offset"]; ok {
 		offset, err := strconv.Atoi(v)
@@ -1045,9 +1097,11 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 			return
 		}
 		request.Offset = ucloud.Int(offset)
+	} else {
+		request.Offset = ucloud.Int(0)
 	}
 
-	response, err := client.umemconn.DescribeUMem(request)
+	response, err := client.umemconn.DescribeUMemSpace(request)
 	if err != nil {
 		log.DefaultLogger.Error(err.Error())
 		handleResponse(rw, nil, err)
@@ -1059,7 +1113,7 @@ func (client *uCloudClient) proxyDescribeUMem(params map[string]string, rw http.
 					continue
 				}
 			}
-			ids = append(ids, instance.ResourceId)
+			ids = append(ids, instance.SpaceId)
 		}
 
 		d, err := json.Marshal(ids)
@@ -1086,14 +1140,10 @@ func parseRequestParams(req *http.Request) (map[string]string, error) {
 			result[k] = values[0]
 		}
 	}
-	d, err := json.Marshal(result)
-	if err != nil {
-		return nil, err
-	}
-	log.DefaultLogger.Debug("request_params: ", string(d))
+	log.DefaultLogger.Debug("request_params: ", result)
 	_, hasAction := result["Action"]
 	if !hasAction {
-		return result, fmt.Errorf("Action parameter is missing")
+		return result, fmt.Errorf("missing parameter Action")
 	}
 	return result, nil
 }

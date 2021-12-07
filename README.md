@@ -29,7 +29,7 @@
    - 在 grafana 的 plugin目录中，创建 ucloud-monitor-datasource 目录，把编译出来的 dist 目录拷贝到此
    - 修改 [configration](https://grafana.com/docs/grafana/latest/administration/configuration/) 中的 plugins 配置，允许未签名插件运行：
      allow_loading_unsigned_plugins = ucloud-monitor-datasource 
-   - 重启grafana
+   - 重启 grafana
 
 ### 配置云监控 grafana 数据源
 
@@ -47,13 +47,14 @@
    | ProjectId  | 项目ID | - | 是 |
    | Region | 资源所在地域 | - | 是 |
    | ResourceType  | 资源类型 | 已支持 uhost, eip, ulb, ulb-vserver, udb, umem, udpn, phost, sharebandwidth, umemcache, uredis, natgw, ufile, udisk. udisk_ssd, udisk_rssd, udisk_sys | 是 |
-   | MetricName  | 监控指标 | - | 是 |
+   | MetricName  | 监控指标 | 不同 ResourceType 支持不同的监控指标，参考 [DescribeResourceMetric](https://docs.ucloud.cn/api/umon-api/describe_resource_metric)| 是 |
    | ResourceId  | 资源ID | - | 是 |
    |  - | - | - |
    | Tag  | 查询资源的业务组名称 | Query ResourceId 相关参数 | 否 |
    | Limit  | 返回数据长度，默认为20，最大100 | Query ResourceId 相关参数 | 否 |
    | Offset  | 列表起始位置偏移量，默认为0 | Query ResourceId 相关参数 | 否 |
    | ULBId   | ULB 的资源 ID | Query ulb-vserver ResourceId 相关参数 | 否 |
+   | ClassType   | UDB 的资源的类型 | Query udb ResourceId 相关参数，已支持 mysql: sql；mongo: nosql；postgresql: postgresql，参考 [DescribeUDBInstance](https://docs.ucloud.cn/api/udb-api/describe_udb_instance)| 否 |
 
 ### 配置 variables
 
@@ -72,3 +73,9 @@
 ### 预设 Dashboard
 
 - 可以在配置数据源时 import 预设的 Dashboard，目前已支持 UCLoud UHost
+
+### 参考文档
+- [API 文档](https://docs.ucloud.cn/api)
+- [获取监控数据 - GetMetric](https://docs.ucloud.cn/api/umon-api/get_metric)
+- [获取资源支持监控指标信息 - DescribeResourceMetric](https://docs.ucloud.cn/api/umon-api/describe_resource_metric)
+- [获取云数据库信息 - DescribeUDBInstance](https://docs.ucloud.cn/api/udb-api/describe_udb_instance)

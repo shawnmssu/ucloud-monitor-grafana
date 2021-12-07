@@ -15,6 +15,7 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
     query.resourceId = getTemplateSrv().replace(query.resourceId);
     query.tag = getTemplateSrv().replace(query.tag);
     query.ulbId = getTemplateSrv().replace(query.ulbId);
+    query.classType = getTemplateSrv().replace(query.classType);
     return super.applyTemplateVariables(query, scopedVars);
   }
 
@@ -37,6 +38,7 @@ export class DataSource extends DataSourceWithBackend<MyQuery, MyDataSourceOptio
         Limit: obj.Limit,
         Offset: obj.Offset,
         ULBId: obj.ULBId,
+        ClassType: obj.ClassType,
       };
 
       let respArr: Array<{ text: any; label: any; value: any }> = [];

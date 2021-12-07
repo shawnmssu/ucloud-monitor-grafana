@@ -82,6 +82,7 @@ const MetricsQueryFieldsEditor = (props: any) => {
           Limit: query.limit,
           Offset: query.offset,
           ULBId: query.ulbId,
+          ClassType: query.classType,
         })
       )
       .then((value: SelectableValue[]) => value);
@@ -143,7 +144,7 @@ const MetricsQueryFieldsEditor = (props: any) => {
 const QueryResourceIdCollapse = (props: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const { onChange, query, onRunQuery } = props;
-  const { tag, limit, offset, ulbId } = query;
+  const { tag, limit, offset, ulbId, classType } = query;
   const onQueryChange = (query: MyQuery) => {
     onChange(query);
     onRunQuery();
@@ -164,6 +165,20 @@ const QueryResourceIdCollapse = (props: any) => {
                     onBlur={onRunQuery}
                     value={ulbId}
                     onChange={(v) => onQueryChange({ ...query, ulbId: v.target.value! })}
+                  />
+                </QueryField>
+              </div>
+            ) : null}
+          </div>
+          <div>
+            {resourceType === 'udb' ? (
+              <div className="gf-form">
+                <QueryField label="ClassType">
+                  <Input
+                    className="gf-form-input width-6"
+                    onBlur={onRunQuery}
+                    value={classType}
+                    onChange={(v) => onQueryChange({ ...query, classType: v.target.value! })}
                   />
                 </QueryField>
               </div>

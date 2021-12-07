@@ -10,6 +10,7 @@ export interface MyQuery extends DataQuery {
   limit: number;
   offset: number;
   ulbId: string;
+  classType: string;
 }
 
 export type SelectableStrings = Array<SelectableValue<string>>;
